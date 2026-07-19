@@ -92,3 +92,36 @@ export async function createOrder(input: OrderInput) {
     };
   }
 }
+
+export async function cancelOrder(orderId: string) {
+  try {
+    const orderResult = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (orderResult.length === 0) {
+      return { success: false, error: "Pesanan tidak ditemukan." };
+    }
+
+    const order = orderResult[0];
+    if (order.status !== "PENDING") {
+      return { success: false, error: "Hanya pesanan pending yang dapat dibatalkan." };
+    }
+
+    await db
+      .update(orders)
+      .set({
+        status: "FAILED",
+        statusChangedBy: "user",
+        statusChangedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId));
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error cancelling order:", error);
+    return { success: false, error: "Gagal membatalkan pesanan." };
+  }
+}

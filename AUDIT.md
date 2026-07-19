@@ -107,3 +107,38 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**
+
+---
+
+## Audit Fase A4 — Invoice (19 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Kesesuaian Spesifikasi (`implementation.md`)**:
+   - Halaman `/invoice/[id]` menangani 4 status order secara spesifik:
+     - **PENDING**: menampilkan jumlah tagihan, QRIS, waktu kadaluwarsa (hitung mundur), 3 langkah pembayaran, polling otomatis status tiap 5 detik, dan tombol "Batalkan".
+     - **PROCESSING/PAID**: menampilkan banner info berwarna amber bahwa pembayaran diterima dan pesanan sedang disiapkan.
+     - **DELIVERED**: menampilkan banner sukses berwarna emerald, detail kredensial akun, masa garansi, dan tombol salin data akun.
+     - **EXPIRED/FAILED**: menampilkan banner rose dan tombol "Buat Pesanan Baru" mengarah ke `/`.
+   - Data akun hanya diambil dan dirender jika status pesanan adalah `DELIVERED` (diverifikasi pada tingkat Server Component).
+   - Tombol "Klaim Garansi" dan "Batalkan" diimplementasikan lengkap.
+   - Status: **LULUS**
+
+2. **Checklist Keamanan**:
+   - Data sensitif akun (email, password, dll) hanya dikirimkan ke halaman klien jika status order di database sudah `DELIVERED`.
+   - Halaman invoice tidak memerlukan login, tetapi dilindungi dengan ID Invoice non-sequential format `BGS-XXXXXXXX` (8 karakter alphanumeric uppercase acak) sehingga tidak dapat ditebak (anti-bruteforce).
+   - Status: **LULUS**
+
+3. **Konsistensi Design System**:
+   - Skema warna status konsisten: PENDING/PROCESSING menggunakan warna amber, DELIVERED menggunakan emerald, dan EXPIRED/FAILED menggunakan rose.
+   - Komponen responsif penuh: layout QR, detail transaksi, dan tabel kredensial akun tersusun rapi tanpa horizontal overflow pada lebar layar 360px.
+   - Tombol salin kredensial memberikan feedback visual ("Tersalin").
+   - Status: **LULUS**
+
+4. **Verifikasi Build & Kompilasi**:
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error (memperbaiki unescaped quotes `"` pada `InvoiceClient.tsx`).
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
