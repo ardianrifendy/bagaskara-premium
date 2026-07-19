@@ -75,3 +75,35 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**
+
+---
+
+## Audit Fase A3 — Payment & Order (19 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Kesesuaian Spesifikasi (`implementation.md`)**:
+   - Tripay adapter di `src/lib/payment/tripay.ts` lengkap (membuat transaksi QRIS, menghitung signature HMAC-SHA256, memverifikasi callback signature dengan `timingSafeEqual`).
+   - Halaman `/produk/[slug]` menampilkan ikon, nama, kategori, deskripsi, pemilihan varian interaktif (menampilkan mode pengiriman & garansi), ringkasan pembayaran, dan tombol "Bayar dengan QRIS".
+   - Server Action `createOrder` memvalidasi input WA (normalisasi ke 62) & Email dengan Zod, mencocokkan harga dari DB, memanggil Tripay, membuat ID Invoice `BGS-XXXXXXXX` (nanoid 8 karakter uppercase), menyimpan order PENDING, dan melakukan redirect.
+   - Webhook `/api/webhook/payment` lengkap (verifikasi signature, idempotensi, update status PAID/EXPIRED/FAILED, pengiriman notifikasi WhatsApp fire-and-forget).
+   - Endpoint polling `/api/orders/[id]/status` berfungsi mengecek status invoice dari klien.
+   - Endpoint cron `/api/cron/expire` diamankan header `Authorization: Bearer CRON_SECRET` untuk merubah status pending orders yang kadaluwarsa ke EXPIRED.
+   - Status: **LULUS**
+
+2. **Checklist Keamanan**:
+   - Signature Webhook diverifikasi dengan timing-safe hmac compare. Salah signature -> ditolak 403.
+   - Proteksi Idempotency: Webhook duplikat tidak diproses ulang (mengembalikan 200 "Order already processed").
+   - Pengambilan Stok Atomik: Menggunakan query tunggal PostgreSQL `UPDATE ... RETURNING` dikombinasikan dengan `FOR UPDATE SKIP LOCKED` yang sepenuhnya didukung Neon HTTP driver, menjamin tidak ada dua pembeli mendapatkan stok akun yang sama secara bersamaan.
+   - Kebocoran Data Sensitif dicegah (password akun terkirim di WA atau invoice jika DELIVERED, tidak di-log).
+   - Status: **LULUS**
+
+3. **Verifikasi Build & Kompilasi (Pengujian Dev-Test)**:
+   - Membuat endpoint pengujian dev `GET /api/dev-test` (hanya aktif di mode sandbox/development) untuk mensimulasikan Test 1 (Signature Check), Test 2 (Idempotency Check), dan Test 3 (Concurrent Atomic Check).
+   - Seluruh unit pengujian berhasil dilewati dengan hasil: **ALL TESTS PASSED** (Signature ditolak 403, idempotency terproteksi, concurrent stock allocation sukses mendapat ID stok berbeda).
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
