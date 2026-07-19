@@ -1,6 +1,6 @@
 # AUDIT.md — Audit Log Keamanan & Kualitas Kode
 
-Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase berikutnya hanya boleh dimulai jika seluruh temuan penting telah diperbaiki dan berstatus LULUS.
+Dokumen ini mencahat riwayat audit untuk setiap fase pengembangan/agent. Fase berikutnya hanya boleh dimulai jika seluruh temuan penting telah diperbaiki dan berstatus LULUS.
 
 ---
 
@@ -140,5 +140,35 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
 4. **Verifikasi Build & Kompilasi**:
    - `tsc --noEmit` bersih tanpa error.
    - `npm run lint` bersih tanpa error (memperbaiki unescaped quotes `"` pada `InvoiceClient.tsx`).
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
+
+---
+
+## Audit Fase A5 — Admin (19 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Kesesuaian Spesifikasi (`implementation.md`)**:
+   - Fitur autentikasi admin di `/admin/login` terproteksi session cookie HttpOnly via `iron-session` dan didukung Next.js Edge-compatible `middleware.ts`.
+   - Halaman `/admin` (Dashboard) menyajikan rangkuman omzet penjualan hari ini, omzet 7 hari terakhir, antrean order, total transaksi sukses, serta daftar peringatan stok menipis (&lt;3) untuk varian pengiriman otomatis.
+   - Modul CRUD Kategori, Produk, dan Varian di `/admin/produk` berjalan lengkap dengan Server Actions.
+   - Modul Kelola Stok di `/admin/stok` mendukung impor massal (bulk paste) berformat `email|password|profil|pin|catatan` lengkap dengan Live Preview Parser, filter, dan tombol penanda status `PROBLEM`.
+   - Modul Kelola Order di `/admin/order` lengkap dengan pencarian, filter status, form fulfill manual untuk status `PROCESSING` (mengirim data & notifikasi WA), serta tombol refund manual (status `REFUNDED`).
+   - Modul Pengaturan di `/admin/settings` untuk merubah nomor WhatsApp CS, teks kebijakan garansi, dan mengaktifkan/menonaktifkan social proof toast dari database.
+   - Status: **LULUS**
+
+2. **Checklist Keamanan**:
+   - Admin area dilindungi middleware yang mengecek sesi terenkripsi cookie HttpOnly.
+   - Database seed dikonfigurasi dengan hash `bcryptjs` bertingkat kerja (salt rounds) 12.
+   - Sesuai Rule 9, setiap perubahan status order manual oleh admin mencatat metadata `statusChangedBy` (format `admin:<username>`) dan `statusChangedAt` secara eksplisit ke dalam baris order database.
+   - Tidak ada password atau payload delivery yang bocor di log server.
+   - Status: **LULUS**
+
+3. **Verifikasi Build & Kompilasi**:
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**

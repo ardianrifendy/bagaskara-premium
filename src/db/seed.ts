@@ -28,6 +28,7 @@ async function seed() {
   await db.delete(schema.products);
   await db.delete(schema.categories);
   await db.delete(schema.admins);
+  await db.delete(schema.settings);
 
   // 2. Insert Categories
   console.log("Seeding categories...");
@@ -316,6 +317,17 @@ async function seed() {
     username: adminUsername,
     passwordHash: passwordHash,
   });
+
+  // 7. Insert Settings
+  console.log("Seeding settings...");
+  await db.insert(schema.settings).values([
+    { key: "cs_whatsapp", value: "628123456789" },
+    {
+      key: "warranty_text",
+      value: "Garansi mencakup: akun tidak premium, salah password, profile bermasalah. Garansi tidak berlaku apabila Anda merubah password atau detail akun.",
+    },
+    { key: "social_proof_enabled", value: "true" },
+  ]);
 
   console.log("-----------------------------------------");
   console.log("Database seeded successfully!");

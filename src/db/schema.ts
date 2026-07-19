@@ -106,6 +106,12 @@ export const admins = pgTable("admins", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").unique().notNull(),
+  value: text("value").notNull(),
+});
+
 // Relations
 export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
