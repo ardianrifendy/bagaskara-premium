@@ -1,18 +1,28 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getIronSession } from "iron-session";
+import { sessionOptions, type SessionData } from "@/lib/session";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const response = NextResponse.next();
 
-  // Protect /admin routes, except /admin/login
-  if (path.startsWith("/admin") && path !== "/admin/login") {
-    const sessionCookie = request.cookies.get("bagaskara_admin_session");
-    if (!sessionCookie) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+  // Protect /admin routes
+  if (path.startsWith("/admin")) {
+    const session = await getIronSession<SessionData>(request, response, sessionOptions);
+
+    if (path === "/admin/login") {
+      if (session.isLoggedIn) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+    } else {
+      if (!session.isLoggedIn) {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
+      }
     }
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
