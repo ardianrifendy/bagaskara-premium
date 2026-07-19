@@ -1,6 +1,6 @@
 # AUDIT.md — Audit Log Keamanan & Kualitas Kode
 
-Dokumen ini mencahat riwayat audit untuk setiap fase pengembangan/agent. Fase berikutnya hanya boleh dimulai jika seluruh temuan penting telah diperbaiki dan berstatus LULUS.
+Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase berikutnya hanya boleh dimulai jika seluruh temuan penting telah diperbaiki dan berstatus LULUS.
 
 ---
 
@@ -168,6 +168,38 @@ Dokumen ini mencahat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - Status: **LULUS**
 
 3. **Verifikasi Build & Kompilasi**:
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
+
+---
+
+## Audit Fase A6 — QA & Polish (19 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Verifikasi QA (End-to-End Sandbox)**:
+   - Membuat laporan QA terperinci di `QA.md` yang mencakup 8 skenario pengujian fungsional dan keamanan utama.
+   - Seluruh rincian skenario lulus verifikasi (Katalog, pembuatan pesanan, polling invoice, responsivitas mobile 360px, proteksi middleware admin, stock warning, manual order fulfillment, dll).
+   - Pengujian terverifikasi sukses dalam mode Sandbox (`TRIPAY_MODE=sandbox`) sesuai instruksi.
+   - Status: **LULUS**
+
+2. **Verifikasi Lokalisasi & Desain**:
+   - Seluruh UI publik dan admin menggunakan Bahasa Indonesia dengan sapaan "Anda".
+   - Angka dan tanggal terformat lokal `id-ID` (locale Rupiah tanpa desimal via Intl helper).
+   - Penyamaran nomor WhatsApp CS/Pelanggan diimplementasikan secara global.
+   - Design system konsisten dengan aksen warna emerald (hijau) dan zinc. Warna ungu/violet dihindari sepenuhnya.
+   - Seluruh halaman publik dan admin mendukung penuh dark mode (bebas flash saat memuat) dan responsif penuh pada lebar layar minimal HP 360px. Tap target tombol minimal 44px.
+   - Status: **LULUS**
+
+3. **Dokumentasi Lengkap (`README.md`)**:
+   - Membuat berkas `README.md` yang lengkap mendokumentasikanTech Stack, konfigurasi berkas `.env`, perintah inisialisasi basis data (generate, migrate, seed), integrasi webhook, VPS cron task setup, dev-test route, dan kredensial admin default.
+   - Status: **LULUS**
+
+4. **Verifikasi Build & Kompilasi**:
    - `tsc --noEmit` bersih tanpa error.
    - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
