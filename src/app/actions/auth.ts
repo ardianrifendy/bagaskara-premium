@@ -1,8 +1,5 @@
 "use server";
 
-import { db } from "@/db";
-import { admins } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import * as bcrypt from "bcryptjs";
 import { getSession } from "@/lib/session";
 import { z } from "zod";
@@ -23,28 +20,29 @@ export async function loginAdmin(input: LoginInput) {
   const { username, password } = validation.data;
 
   try {
-    // Look up username
-    const adminResult = await db
-      .select()
-      .from(admins)
-      .where(eq(admins.username, username.trim()))
-      .limit(1);
+    // Validate against environment variables — no DB lookup
+    const envUsername = process.env.ADMIN_USERNAME;
+    const envPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-    if (adminResult.length === 0) {
+    if (!envUsername || !envPasswordHash) {
+      console.error("ADMIN_USERNAME or ADMIN_PASSWORD_HASH env vars not set.");
+      return { success: false, error: "Konfigurasi admin belum lengkap." };
+    }
+
+    // Compare username (case-sensitive, trimmed)
+    if (username.trim() !== envUsername.trim()) {
       return { success: false, error: "Username atau password salah." };
     }
 
-    const admin = adminResult[0];
-
-    // Verify hash password using bcryptjs
-    const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash);
+    // Verify password against bcrypt hash from env
+    const isPasswordValid = bcrypt.compareSync(password, envPasswordHash);
     if (!isPasswordValid) {
       return { success: false, error: "Username atau password salah." };
     }
 
     // Set session data
     const session = await getSession();
-    session.username = admin.username;
+    session.username = envUsername;
     session.isLoggedIn = true;
     await session.save();
 

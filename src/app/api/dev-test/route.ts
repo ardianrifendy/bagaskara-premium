@@ -30,8 +30,13 @@ async function simulateAtomicAllocation(variantId: number, orderId: string) {
 }
 
 export async function GET(request: Request) {
-  // Only allow running this test route in development/sandbox mode for security
-  if (process.env.TRIPAY_MODE !== "sandbox" && process.env.NODE_ENV === "production") {
+  // HARD BLOCK: return 404 in production — this route must never be accessible
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // Additional guard: only allow in sandbox/development mode
+  if (process.env.TRIPAY_MODE !== "sandbox") {
     return NextResponse.json({ error: "Only available in sandbox/development mode" }, { status: 403 });
   }
 

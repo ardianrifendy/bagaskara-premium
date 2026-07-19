@@ -204,3 +204,52 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**
+
+---
+
+## Patch Keamanan — Security Hardening (19 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Perubahan & Evaluasi:
+1. **Hapus Kredensial Admin Default dari Seed**:
+   - Seluruh blok seeding akun admin (username `admin`, password `bagaskara123`) telah dihapus dari `src/db/seed.ts`.
+   - Import `bcryptjs` di seed dihapus karena tidak lagi diperlukan.
+   - Login admin kini memvalidasi terhadap `ADMIN_USERNAME` + `ADMIN_PASSWORD_HASH` dari environment variable, tanpa lookup ke tabel `admins` di database.
+   - `src/app/actions/auth.ts` di-refactor: menghapus import `db` dan `admins`, validasi langsung ke `process.env`.
+   - Status: **LULUS**
+
+2. **Script Hash Password (`npm run hash-password`)**:
+   - Dibuat script `scripts/hash-password.ts` yang menerima input password (interaktif atau via argumen CLI), lalu menghasilkan hash bcrypt (salt rounds: 12).
+   - Script ditambahkan ke `package.json` sebagai perintah `npm run hash-password`.
+   - Status: **LULUS**
+
+3. **Guard Route `/api/dev-test` di Production**:
+   - Menambahkan pengecekan `process.env.NODE_ENV === "production"` yang mengembalikan HTTP 404 (bukan 403) di awal handler, sebelum logika apapun dieksekusi.
+   - Ini memastikan route dev-test seolah tidak ada di production, terlepas dari nilai `TRIPAY_MODE`.
+   - Status: **LULUS**
+
+4. **Stok Seed Dikosongkan**:
+   - Seluruh stok akun seed (Netflix, Disney+, Spotify, Canva, ChatGPT) yang berisi email/password dummy telah dihapus dari `seed.ts`.
+   - Seed kini hanya mengisi kategori, produk, varian, dan pengaturan. Stok diisi manual via Admin Panel.
+   - Status: **LULUS**
+
+5. **README.md Diperbarui**:
+   - Bagian "Informasi Akun Admin Awal" yang menampilkan kredensial default (`admin`/`bagaskara123`) telah dihapus.
+   - Ditambahkan instruksi lengkap penggunaan `npm run hash-password` untuk membuat hash bcrypt sendiri.
+   - Ditambahkan section **Checklist Go-Live** yang mencakup: kosongkan stok seed, ganti `TRIPAY_MODE` ke production, set callback URL production, verifikasi `.env` tidak ter-commit, dan verifikasi route dev-test mengembalikan 404.
+   - Status: **LULUS**
+
+6. **Checklist Keamanan**:
+   - Tidak ada kredensial default yang tersisa di source code atau seed.
+   - Tidak ada secret/API key/password yang ter-hardcode.
+   - Route dev-test terkunci di production (HTTP 404).
+   - `.env.example` diperbarui: `ADMIN_PASSWORD_HASH` kosong dengan komentar instruksi generate.
+   - Status: **LULUS**
+
+7. **Verifikasi Build & Kompilasi**:
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**

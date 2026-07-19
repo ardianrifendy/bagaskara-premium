@@ -33,9 +33,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 # Kredensial Admin & Enkripsi Sesi
 SESSION_SECRET="session_secret_minimal_32_karakter_acak"
 ADMIN_USERNAME="admin"
-
-# Hash Bcrypt password admin (dapat di-generate dinamis lewat seed script)
-ADMIN_PASSWORD_HASH="$2a$12$6qO1gZ5Z/s1w6vW0gG2/G.y1eQx1Y1K2Y1T2S2W2T2S2W2T2S2W2S" 
+ADMIN_PASSWORD_HASH="" # Isi dengan hash bcrypt (lihat instruksi di bawah)
 
 # Keamanan Endpoint Cron Expire
 CRON_SECRET="cron_secret_untuk_verifikasi"
@@ -56,31 +54,51 @@ Jalankan perintah berikut secara berurutan:
 npm install
 ```
 
-### 2. Generate Berkas Migrasi Database (Drizzle ORM)
+### 2. Buat Hash Password Admin
+Generate hash bcrypt untuk password admin Anda. Hash ini akan digunakan sebagai nilai `ADMIN_PASSWORD_HASH` di berkas `.env`:
+
+```bash
+npm run hash-password
+```
+
+Script akan meminta Anda memasukkan password, lalu menampilkan hash bcrypt yang siap disalin. Anda juga bisa langsung memberikan password sebagai argumen:
+
+```bash
+npm run hash-password -- "PasswordKuatAnda123!"
+```
+
+Salin hash yang dihasilkan ke variabel `ADMIN_PASSWORD_HASH` di berkas `.env` Anda:
+```env
+ADMIN_PASSWORD_HASH="$2a$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+> **⚠️ Penting:** Tidak ada kredensial admin default. Anda WAJIB membuat hash password sendiri sebelum bisa login ke admin panel.
+
+### 3. Generate Berkas Migrasi Database (Drizzle ORM)
 Perintah ini akan membaca skema di `src/db/schema.ts` dan men-generate SQL migrasi di folder `./drizzle`:
 ```bash
 npm run db:generate
 ```
 
-### 3. Jalankan Migrasi Database
+### 4. Jalankan Migrasi Database
 Perintah ini akan mengeksekusi script migrasi dan membuat tabel-tabel di Neon Database secara otomatis:
 ```bash
 npm run db:migrate
 ```
 
-### 4. Isi Seed Data Awal
-Perintah ini akan mengisi kategori, katalog produk, varian harga placeholder, stok akun pengujian, dan membuat akun admin utama (`admin` | `bagaskara123`):
+### 5. Isi Seed Data Awal (Katalog Produk)
+Perintah ini akan mengisi kategori, katalog produk, dan varian harga. **Tidak ada stok akun seed dan tidak ada akun admin default** — stok diisi manual via Admin Panel, dan login admin menggunakan environment variable.
 ```bash
 npm run db:seed
 ```
 
-### 5. Jalankan Server Pengembangan (Dev Mode)
+### 6. Jalankan Server Pengembangan (Dev Mode)
 ```bash
 npm run dev
 ```
 Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
-### 6. Uji Build Produksi (Build Test)
+### 7. Uji Build Produksi (Build Test)
 Pastikan seluruh tipe TypeScript dan ESLint bersih:
 ```bash
 npm run build
@@ -96,7 +114,7 @@ Daftarkan Callback URL di Merchant Settings dashboard Tripay Anda:
 Sistem akan memverifikasi signature HMAC-SHA256 dari Tripay secara otomatis. Salah signature akan ditolak 403. Webhook diproteksi dengan sistem **idempotent** dan alokasi stok **atomik** (`UPDATE ... RETURNING` & `FOR UPDATE SKIP LOCKED`).
 
 ### 2. Pengujian Suite Pengembang (Dev-Test)
-Saat berjalan pada mode `sandbox` atau `development`, Anda dapat menguji kehandalan sistem webhook signature, proteksi idempotensi, dan perlindungan race condition alokasi stok secara otomatis dengan mengakses:
+Route `/api/dev-test` **hanya tersedia di mode development** (`NODE_ENV !== "production"`). Di production, route ini mengembalikan 404. Saat berjalan pada mode sandbox/development, Anda dapat menguji kehandalan sistem webhook signature, proteksi idempotensi, dan perlindungan race condition alokasi stok secara otomatis dengan mengakses:
 `http://localhost:3000/api/dev-test`
 
 ### 3. Konfigurasi Cron Task VPS (Auto-Expired)
@@ -107,7 +125,45 @@ Untuk membatalkan otomatis pesanan `PENDING` yang melewati waktu bayar 60 menit,
 
 ---
 
-## Informasi Akun Admin Awal
-- **URL Dashboard:** `http://localhost:3000/admin`
-- **Username:** `admin` (atau sesuaikan env `ADMIN_USERNAME`)
-- **Password:** `bagaskara123` (password default hasil `npm run db:seed`)
+## Akses Admin Panel
+- **URL Dashboard:** `https://domain-anda.com/admin`
+- **Username:** Sesuai env `ADMIN_USERNAME`
+- **Password:** Sesuai hash bcrypt di env `ADMIN_PASSWORD_HASH` (buat dengan `npm run hash-password`)
+
+---
+
+## Checklist Go-Live
+
+Sebelum mengubah aplikasi dari mode sandbox ke production, pastikan seluruh item berikut telah diselesaikan:
+
+### 1. Kosongkan Stok Seed
+- [ ] Hapus seluruh stok akun pengujian/dummy dari database.
+- [ ] Isi stok akun asli via Admin Panel (`/admin/stok`) menggunakan fitur impor massal.
+
+### 2. Ganti Mode Tripay ke Production
+- [ ] Ubah `TRIPAY_MODE="production"` di berkas `.env`.
+- [ ] Ganti `TRIPAY_API_KEY`, `TRIPAY_PRIVATE_KEY`, dan `TRIPAY_MERCHANT_CODE` dengan kredensial production dari dashboard Tripay.
+
+### 3. Set Callback URL Production
+- [ ] Daftarkan Callback URL production di Merchant Settings dashboard Tripay: `https://domain-anda.com/api/webhook/payment`
+- [ ] Pastikan domain sudah ter-deploy dan bisa diakses publik (HTTPS).
+
+### 4. Verifikasi Environment Variables
+- [ ] Pastikan `SESSION_SECRET` menggunakan string acak minimal 32 karakter (bukan nilai default).
+- [ ] Pastikan `ADMIN_PASSWORD_HASH` sudah diisi dengan hash bcrypt dari password yang kuat (buat dengan `npm run hash-password`).
+- [ ] Pastikan `CRON_SECRET` menggunakan string acak yang kuat.
+- [ ] Pastikan `NEXT_PUBLIC_APP_URL` mengarah ke domain production.
+
+### 5. Verifikasi Keamanan File
+- [ ] Pastikan berkas `.env` **tidak ter-commit** ke repository Git (cek dengan `git status` dan verifikasi `.gitignore`).
+- [ ] Pastikan tidak ada secret/API key/password yang ter-hardcode di source code.
+
+### 6. Verifikasi Fungsionalitas
+- [ ] Tes pembuatan order dan pembayaran QRIS di environment production.
+- [ ] Tes webhook callback Tripay mengirim notifikasi ke URL production.
+- [ ] Tes auto-delivery stok akun setelah pembayaran berhasil.
+- [ ] Tes cron job `/api/cron/expire` berjalan dengan benar di VPS.
+- [ ] Tes login admin panel dan fitur CRUD di production.
+
+### 7. Verifikasi Route Dev-Test
+- [ ] Pastikan `/api/dev-test` mengembalikan 404 di production (`NODE_ENV=production`).

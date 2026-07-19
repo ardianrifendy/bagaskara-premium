@@ -1,7 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import * as bcrypt from "bcryptjs";
 import * as schema from "./schema";
 
 // Load environment variables like Next.js does
@@ -49,7 +48,7 @@ async function seed() {
 
   // 3. Insert Products
   console.log("Seeding products...");
-  const insertedProducts = await db
+  await db
     .insert(schema.products)
     .values([
       {
@@ -118,17 +117,20 @@ async function seed() {
     ])
     .returning();
 
-  const prodNetflix = insertedProducts.find((p) => p.slug === "netflix-4k")!.id;
-  const prodDisney = insertedProducts.find((p) => p.slug === "disney-hotstar")!.id;
-  const prodSpotify = insertedProducts.find((p) => p.slug === "spotify-premium")!.id;
-  const prodYoutube = insertedProducts.find((p) => p.slug === "youtube-premium")!.id;
-  const prodCanva = insertedProducts.find((p) => p.slug === "canva-pro")!.id;
-  const prodCapcut = insertedProducts.find((p) => p.slug === "capcut-pro")!.id;
-  const prodChatgpt = insertedProducts.find((p) => p.slug === "chatgpt-plus")!.id;
-
-  // 4. Insert Variants
+  // 4. Insert Variants (tanpa stok — stok diisi manual via admin panel)
   console.log("Seeding variants...");
-  const insertedVariants = await db
+
+  // Ambil product IDs
+  const allProducts = await db.select().from(schema.products);
+  const prodNetflix = allProducts.find((p) => p.slug === "netflix-4k")!.id;
+  const prodDisney = allProducts.find((p) => p.slug === "disney-hotstar")!.id;
+  const prodSpotify = allProducts.find((p) => p.slug === "spotify-premium")!.id;
+  const prodYoutube = allProducts.find((p) => p.slug === "youtube-premium")!.id;
+  const prodCanva = allProducts.find((p) => p.slug === "canva-pro")!.id;
+  const prodCapcut = allProducts.find((p) => p.slug === "capcut-pro")!.id;
+  const prodChatgpt = allProducts.find((p) => p.slug === "chatgpt-plus")!.id;
+
+  await db
     .insert(schema.variants)
     .values([
       // Netflix
@@ -222,103 +224,10 @@ async function seed() {
     ])
     .returning();
 
-  // Find variant IDs for stock seeding
-  const netflix1mVar = insertedVariants.find(
-    (v) => v.productId === prodNetflix && v.name === "1 Bulan Shared"
-  )!.id;
-  const disney1mVar = insertedVariants.find(
-    (v) => v.productId === prodDisney && v.name === "1 Bulan Shared"
-  )!.id;
-  const spotify1mVar = insertedVariants.find(
-    (v) => v.productId === prodSpotify && v.name === "1 Bulan Individual"
-  )!.id;
-  const canva1mVar = insertedVariants.find(
-    (v) => v.productId === prodCanva && v.name === "1 Bulan Premium Member"
-  )!.id;
-  const chatgpt1mVar = insertedVariants.find(
-    (v) => v.productId === prodChatgpt && v.name === "1 Bulan Shared"
-  )!.id;
+  // NOTE: Tidak ada stok seed — stok akun diisi manual via Admin Panel (/admin/stok).
+  // NOTE: Tidak ada admin seed — login admin menggunakan env ADMIN_USERNAME + ADMIN_PASSWORD_HASH.
 
-  // 5. Insert Stock Items
-  console.log("Seeding stock items...");
-  const stockToInsert = [
-    // Netflix 1M Shared
-    ...Array.from({ length: 5 }).map((_, i) => ({
-      variantId: netflix1mVar,
-      payloadJson: {
-        email: `netflix-shared-${i + 1}@bagaskara.store`,
-        password: `NetPassWord${i + 1}!`,
-        profile: `Profil ${i + 1}`,
-        pin: `100${i + 1}`,
-        note: "Gunakan profil Anda sendiri. Dilarang mengubah password/pin.",
-      },
-      status: "AVAILABLE" as const,
-    })),
-    // Disney+ 1M Shared
-    ...Array.from({ length: 3 }).map((_, i) => ({
-      variantId: disney1mVar,
-      payloadJson: {
-        email: `disney-shared-${i + 1}@bagaskara.store`,
-        password: `DisneyPass${i + 1}!`,
-        profile: `Profil ${i + 1}`,
-        pin: `200${i + 1}`,
-        note: "Silakan gunakan profil yang ditentukan. Dilarang edit profil lain.",
-      },
-      status: "AVAILABLE" as const,
-    })),
-    // Spotify 1M Individual
-    ...Array.from({ length: 5 }).map((_, i) => ({
-      variantId: spotify1mVar,
-      payloadJson: {
-        email: `spotify-indiv-${i + 1}@bagaskara.store`,
-        password: `SpotPass-${i + 1}#`,
-        profile: "-",
-        pin: "-",
-        note: "Akun individual personal. Garansi penuh 30 hari.",
-      },
-      status: "AVAILABLE" as const,
-    })),
-    // Canva 1M Premium
-    ...Array.from({ length: 4 }).map((_, i) => ({
-      variantId: canva1mVar,
-      payloadJson: {
-        email: `canva-prem-${i + 1}@bagaskara.store`,
-        password: `CanvaPassWord${i + 1}`,
-        profile: "-",
-        pin: "-",
-        note: "Akses login via email & password, atau gunakan link invite di profil admin.",
-      },
-      status: "AVAILABLE" as const,
-    })),
-    // ChatGPT Plus Shared
-    ...Array.from({ length: 3 }).map((_, i) => ({
-      variantId: chatgpt1mVar,
-      payloadJson: {
-        email: `chatgpt-shared-${i + 1}@bagaskara.store`,
-        password: `GPTplusPass${i + 1}!`,
-        profile: `User-${i + 1}`,
-        pin: "-",
-        note: "Gunakan secukupnya, dilarang mengubah password atau menghapus chat history orang lain.",
-      },
-      status: "AVAILABLE" as const,
-    })),
-  ];
-
-  await db.insert(schema.stockItems).values(stockToInsert);
-
-  // 6. Insert Admins
-  console.log("Seeding admin account...");
-  const adminUsername = process.env.ADMIN_USERNAME || "admin";
-  const passwordToHash = "bagaskara123";
-  const salt = bcrypt.genSaltSync(12);
-  const passwordHash = bcrypt.hashSync(passwordToHash, salt);
-
-  await db.insert(schema.admins).values({
-    username: adminUsername,
-    passwordHash: passwordHash,
-  });
-
-  // 7. Insert Settings
+  // 5. Insert Settings
   console.log("Seeding settings...");
   await db.insert(schema.settings).values([
     { key: "cs_whatsapp", value: "628123456789" },
@@ -331,7 +240,9 @@ async function seed() {
 
   console.log("-----------------------------------------");
   console.log("Database seeded successfully!");
-  console.log(`Admin account created -> Username: ${adminUsername} | Password: ${passwordToHash}`);
+  console.log("Kategori, produk, dan varian telah diisi.");
+  console.log("Stok akun: KOSONG (isi manual via Admin Panel).");
+  console.log("Admin login: gunakan env ADMIN_USERNAME + ADMIN_PASSWORD_HASH.");
   console.log("-----------------------------------------");
   process.exit(0);
 }
