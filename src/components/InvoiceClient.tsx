@@ -17,7 +17,8 @@ import {
   Info,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import NextImage from "next/image";
+import CustomConfirmModal from "./CustomConfirmModal";
 
 interface InvoiceClientProps {
   order: {
@@ -47,34 +48,52 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmCancelModal, setConfirmCancelModal] = useState(false);
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollDelayRef = useRef<number>(5000);
 
-  // 1. Polling for PENDING or PROCESSING status updates
+  // 1. Smart Tab-Aware & Backoff Polling for PENDING or PROCESSING status updates
   useEffect(() => {
-    const isPendingOrProcessing = order.status === "PENDING" || order.status === "PROCESSING" || order.status === "PAID";
+    const isPendingOrProcessing =
+      order.status === "PENDING" || order.status === "PROCESSING" || order.status === "PAID";
     if (!isPendingOrProcessing) return;
 
+    let isMounted = true;
+
     const pollStatus = async () => {
+      // Don't poll if user switched to another tab
+      if (document.hidden) {
+        pollingTimeoutRef.current = setTimeout(pollStatus, 5000);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/orders/${order.id}/status`);
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
           if (data.status !== order.status) {
             router.refresh(); // Refresh route props when status updates server-side
+            return;
           }
         }
       } catch (err) {
         console.error("Polling status failed:", err);
       }
+
+      // Slightly increase delay (backoff) up to max 15 seconds to prevent server spam
+      pollDelayRef.current = Math.min(pollDelayRef.current + 1000, 15000);
+      if (isMounted) {
+        pollingTimeoutRef.current = setTimeout(pollStatus, pollDelayRef.current);
+      }
     };
 
-    // Poll every 5 seconds
-    pollingIntervalRef.current = setInterval(pollStatus, 5000);
+    pollingTimeoutRef.current = setTimeout(pollStatus, pollDelayRef.current);
 
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
+      isMounted = false;
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
       }
     };
   }, [order.id, order.status, router]);
@@ -119,9 +138,12 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
   };
 
   // 5. Handle manual order cancellation
-  const handleCancel = async () => {
-    if (!confirm("Apakah Anda yakin ingin membatalkan pesanan ini?")) return;
+  const handleCancelClick = () => {
+    setConfirmCancelModal(true);
+  };
 
+  const executeCancel = async () => {
+    setConfirmCancelModal(false);
     setError(null);
     setCancelLoading(true);
 
@@ -244,7 +266,7 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
             {/* QRIS Code Image */}
             <div className="flex flex-col items-center justify-center p-4 border border-zinc-100 dark:border-zinc-800 rounded-2xl bg-white max-w-[260px] mx-auto shadow-inner select-none">
               <div className="relative w-48 h-48 sm:w-52 sm:h-52">
-                <Image
+                <NextImage
                   src={order.paymentQrUrl}
                   alt="QRIS Dinamis QR Code"
                   fill
@@ -286,7 +308,7 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
             {/* Action buttons */}
             <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 flex flex-col items-center gap-3">
               <button
-                onClick={handleCancel}
+                onClick={handleCancelClick}
                 disabled={cancelLoading}
                 className="text-xs sm:text-sm font-bold text-rose-600 hover:text-rose-500 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 rounded-full px-4 py-2 min-h-[44px]"
               >
@@ -471,6 +493,17 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
           </div>
         </div>
       </div>
+
+      {/* Cancel Order Confirmation Modal */}
+      <CustomConfirmModal
+        isOpen={confirmCancelModal}
+        title="Batalkan Pesanan"
+        message="Apakah Anda yakin ingin membatalkan pesanan ini? QRIS pembayaran akan ditutup."
+        variant="warning"
+        confirmText="Ya, Batalkan Pesanan"
+        onConfirm={executeCancel}
+        onCancel={() => setConfirmCancelModal(false)}
+      />
     </div>
   );
 }

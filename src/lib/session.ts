@@ -22,3 +22,11 @@ export async function getSession() {
   const session = await getIronSession<SessionData>(cookies(), sessionOptions);
   return session;
 }
+
+export async function requireAdminSession() {
+  const session = await getSession();
+  if (!session.isLoggedIn) {
+    throw new Error("Akses ditolak: Anda tidak memiliki sesi admin yang valid.");
+  }
+  return session;
+}

@@ -5,6 +5,7 @@ import { categories, products, variants } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { requireAdminSession } from "@/lib/session";
 
 // 1. Zod schemas
 const categorySchema = z.object({
@@ -44,14 +45,15 @@ const variantSchema = z.object({
 
 // 2. Server Actions for Categories
 export async function upsertCategory(input: z.infer<typeof categorySchema>) {
-  const validation = categorySchema.safeParse(input);
-  if (!validation.success) {
-    return { success: false, error: validation.error.errors[0]?.message };
-  }
-
-  const { id, name, slug, accentColor, sortOrder } = validation.data;
-
   try {
+    await requireAdminSession();
+    const validation = categorySchema.safeParse(input);
+    if (!validation.success) {
+      return { success: false, error: validation.error.errors[0]?.message };
+    }
+
+    const { id, name, slug, accentColor, sortOrder } = validation.data;
+
     if (id) {
       // Update
       await db
@@ -76,6 +78,7 @@ export async function upsertCategory(input: z.infer<typeof categorySchema>) {
 
 export async function deleteCategory(id: number) {
   try {
+    await requireAdminSession();
     await db.delete(categories).where(eq(categories.id, id));
     revalidatePath("/admin/produk");
     revalidatePath("/");
@@ -88,14 +91,15 @@ export async function deleteCategory(id: number) {
 
 // 3. Server Actions for Products
 export async function upsertProduct(input: z.infer<typeof productSchema>) {
-  const validation = productSchema.safeParse(input);
-  if (!validation.success) {
-    return { success: false, error: validation.error.errors[0]?.message };
-  }
-
-  const data = validation.data;
-
   try {
+    await requireAdminSession();
+    const validation = productSchema.safeParse(input);
+    if (!validation.success) {
+      return { success: false, error: validation.error.errors[0]?.message };
+    }
+
+    const data = validation.data;
+
     if (data.id) {
       // Update
       await db
@@ -139,6 +143,7 @@ export async function upsertProduct(input: z.infer<typeof productSchema>) {
 
 export async function deleteProduct(id: number) {
   try {
+    await requireAdminSession();
     await db.delete(products).where(eq(products.id, id));
     revalidatePath("/admin/produk");
     revalidatePath("/");
@@ -152,6 +157,7 @@ export async function deleteProduct(id: number) {
 export async function bulkUpdateProductStatus(ids: number[], isActive: boolean) {
   if (!ids || ids.length === 0) return { success: false, error: "Tidak ada produk yang dipilih." };
   try {
+    await requireAdminSession();
     await db.update(products).set({ isActive }).where(inArray(products.id, ids));
     revalidatePath("/admin/produk");
     revalidatePath("/");
@@ -165,6 +171,7 @@ export async function bulkUpdateProductStatus(ids: number[], isActive: boolean) 
 export async function bulkDeleteProducts(ids: number[]) {
   if (!ids || ids.length === 0) return { success: false, error: "Tidak ada produk yang dipilih." };
   try {
+    await requireAdminSession();
     await db.delete(products).where(inArray(products.id, ids));
     revalidatePath("/admin/produk");
     revalidatePath("/");

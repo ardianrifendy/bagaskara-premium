@@ -17,6 +17,9 @@ import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, Ey
 import { formatRupiah } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
 import CustomCheckbox from "./CustomCheckbox";
+import CustomConfirmModal from "./CustomConfirmModal";
+import CustomToast, { ToastMessage } from "./CustomToast";
+import EmptyState from "./EmptyState";
 
 interface Category {
   id: number;
@@ -106,35 +109,68 @@ export default function AdminProductManager({
     }
   };
 
-  const handleBulkStatusChange = async (isActive: boolean) => {
-    if (selectedProductIds.length === 0) return;
-    const statusLabel = isActive ? "mengaktifkan" : "menonaktifkan";
-    if (!confirm(`Apakah Anda yakin ingin ${statusLabel} ${selectedProductIds.length} produk terpilih?`)) return;
+  // Custom Confirm & Toast State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "danger" | "warning" | "info";
+    onConfirm: () => void;
+  } | null>(null);
 
-    setLoading(true);
-    const res = await bulkUpdateProductStatus(selectedProductIds, isActive);
-    setLoading(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
-    if (res.success) {
-      setSelectedProductIds([]);
-    } else {
-      alert(res.error || "Gagal memproses status.");
-    }
+  const showToast = (type: "success" | "error" | "info", text: string) => {
+    setToast({ id: Date.now().toString(), type, text });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkStatusChange = (isActive: boolean) => {
     if (selectedProductIds.length === 0) return;
-    if (!confirm(`PERINGATAN: Apakah Anda yakin ingin MENGHAPUS ${selectedProductIds.length} produk terpilih? Semua varian produk tersebut akan ikut terhapus.`)) return;
+    const statusLabel = isActive ? "mengaktifkan" : "menonaktifkan";
 
-    setLoading(true);
-    const res = await bulkDeleteProducts(selectedProductIds);
-    setLoading(false);
+    setConfirmModal({
+      isOpen: true,
+      title: `Konfirmasi ${statusLabel.toUpperCase()} Produk`,
+      message: `Apakah Anda yakin ingin ${statusLabel} ${selectedProductIds.length} produk terpilih?`,
+      variant: isActive ? "info" : "warning",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        const res = await bulkUpdateProductStatus(selectedProductIds, isActive);
+        setLoading(false);
 
-    if (res.success) {
-      setSelectedProductIds([]);
-    } else {
-      alert(res.error || "Gagal menghapus produk terpilih.");
-    }
+        if (res.success) {
+          setSelectedProductIds([]);
+          showToast("success", `Berhasil ${statusLabel} ${selectedProductIds.length} produk!`);
+        } else {
+          showToast("error", res.error || "Gagal memproses status.");
+        }
+      },
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedProductIds.length === 0) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Massal Produk",
+      message: `PERINGATAN: Apakah Anda yakin ingin MENGHAPUS ${selectedProductIds.length} produk terpilih? Seluruh paket varian produk ini juga akan terhapus secara permanen.`,
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        const res = await bulkDeleteProducts(selectedProductIds);
+        setLoading(false);
+
+        if (res.success) {
+          setSelectedProductIds([]);
+          showToast("success", `Berhasil menghapus ${selectedProductIds.length} produk!`);
+        } else {
+          showToast("error", res.error || "Gagal menghapus produk terpilih.");
+        }
+      },
+    });
   };
 
   // Variant State (Modal linked to selected product)
@@ -338,22 +374,58 @@ export default function AdminProductManager({
   };
 
   // Delete handlers
-  const handleCategoryDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kategori ini? Semua produk di dalamnya akan ikut terhapus.")) return;
-    const res = await deleteCategory(id);
-    if (!res.success) alert(res.error);
+  const handleCategoryDelete = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Kategori",
+      message: "Apakah Anda yakin ingin menghapus kategori ini? Semua produk di dalamnya akan ikut terhapus.",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const res = await deleteCategory(id);
+        if (res.success) {
+          showToast("success", "Kategori berhasil dihapus.");
+        } else {
+          showToast("error", res.error || "Gagal menghapus kategori.");
+        }
+      },
+    });
   };
 
-  const handleProductDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk ini? Semua varian dan data terkait akan ikut terhapus.")) return;
-    const res = await deleteProduct(id);
-    if (!res.success) alert(res.error);
+  const handleProductDelete = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Produk",
+      message: "Apakah Anda yakin ingin menghapus produk ini? Semua varian dan data terkait akan ikut terhapus.",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const res = await deleteProduct(id);
+        if (res.success) {
+          showToast("success", "Produk berhasil dihapus.");
+        } else {
+          showToast("error", res.error || "Gagal menghapus produk.");
+        }
+      },
+    });
   };
 
-  const handleVariantDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus varian produk ini?")) return;
-    const res = await deleteVariant(id);
-    if (!res.success) alert(res.error);
+  const handleVariantDelete = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Varian",
+      message: "Apakah Anda yakin ingin menghapus varian produk ini?",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const res = await deleteVariant(id);
+        if (res.success) {
+          showToast("success", "Varian berhasil dihapus.");
+        } else {
+          showToast("error", res.error || "Gagal menghapus varian.");
+        }
+      },
+    });
   };
 
   return (
@@ -1251,6 +1323,19 @@ export default function AdminProductManager({
           </div>
         </div>
       )}
+
+      {/* Global Confirm Modal & Toast */}
+      {confirmModal && (
+        <CustomConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          variant={confirmModal.variant}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+      <CustomToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
