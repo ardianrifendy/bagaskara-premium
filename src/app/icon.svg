@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#059669" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Rounded Container -->
+  <rect x="32" y="32" width="448" height="448" rx="128" fill="url(#bgGrad)" filter="url(#shadow)"/>
+  
+  <!-- Store Icon -->
+  <g fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" transform="translate(116, 116)">
+    <!-- Roof / Awning -->
+    <path d="M 40 120 L 80 40 L 200 40 L 240 120 Z"/>
+    <path d="M 20 120 H 260 V 150 C 260 166.5 246.5 180 230 180 C 213.5 180 200 166.5 200 150 C 200 166.5 186.5 180 170 180 C 153.5 180 140 166.5 140 150 C 140 166.5 126.5 180 110 180 C 93.5 180 80 166.5 80 150 C 80 166.5 66.5 180 50 180 C 33.5 180 20 166.5 20 150 Z" fill="#ffffff" fill-opacity="0.15"/>
+    
+    <!-- Store Base -->
+    <path d="M 40 180 V 240 C 40 251 49 260 60 260 H 220 C 231 260 240 251 240 240 V 180"/>
+    
+    <!-- Door -->
+    <path d="M 105 260 V 205 C 105 194 114 185 125 185 C 136 185 145 194 145 205 V 260"/>
+  </g>
+</svg>
