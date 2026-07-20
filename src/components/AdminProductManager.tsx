@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
+import CustomCheckbox from "./CustomCheckbox";
 
 interface Category {
   id: number;
@@ -455,14 +456,14 @@ export default function AdminProductManager({
               <table className="w-full text-left border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 text-zinc-400 dark:text-zinc-500 uppercase text-[10px] tracking-wider">
-                    <th className="px-3 py-3 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        checked={products.length > 0 && selectedProductIds.length === products.length}
-                        onChange={toggleSelectAllProducts}
-                        className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
-                        title="Pilih Semua Produk"
-                      />
+                    <th className="px-3.5 py-3 w-10 text-center">
+                      <div className="flex justify-center">
+                        <CustomCheckbox
+                          checked={products.length > 0 && selectedProductIds.length === products.length}
+                          onChange={toggleSelectAllProducts}
+                          title="Pilih Semua Produk"
+                        />
+                      </div>
                     </th>
                     <th className="px-4 py-3 font-semibold">Produk</th>
                     <th className="px-4 py-3 font-semibold">Kategori</th>
@@ -494,13 +495,13 @@ export default function AdminProductManager({
                               : "hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10"
                           }`}
                         >
-                          <td className="px-3 py-3.5 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectProduct(prod.id)}
-                              className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
-                            />
+                          <td className="px-3.5 py-3.5 text-center">
+                            <div className="flex justify-center">
+                              <CustomCheckbox
+                                checked={isSelected}
+                                onChange={() => toggleSelectProduct(prod.id)}
+                              />
+                            </div>
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="font-bold text-zinc-900 dark:text-zinc-100">{prod.name}</div>
