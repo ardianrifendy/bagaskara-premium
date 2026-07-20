@@ -151,6 +151,25 @@ pm2 startup
 
 ---
 
+## Auto-Deployment di VPS (Git Pull -> Build -> PM2 Restart)
+
+Untuk melakukan pembaruan kode di VPS secara otomatis dalam satu langkah (*Git Pull -> Build -> PM2 Restart*), Anda dapat menjalankan script deployment yang telah disediakan:
+
+```bash
+# Berikan izin eksekusi script (cukup sekali di VPS)
+chmod +x deploy.sh
+
+# Jalankan deployment
+./deploy.sh
+
+# Atau lewat npm script:
+npm run deploy
+```
+
+> **Catatan:** Script `deploy.sh` secara otomatis akan memeriksa keberhasilan `git pull` dan `npm run build`. Jika build gagal, PM2 tidak akan di-restart untuk mencegah server mengalami *downtime*.
+
+---
+
 ## Integrasi & Konfigurasi Eksternal
 
 ### 1. Webhook Payment Callback (Tripay Dashboard)
