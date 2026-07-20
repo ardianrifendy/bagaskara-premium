@@ -1,4 +1,4 @@
-# AUDIT REPORT — Fitur Search Bar Admin, Indikator Stok Habis di Beranda, Kode Promo, Auto-Timeout & Admin Cancel Order
+# AUDIT REPORT — Fitur Search Bar Admin, Filter Status & Sorting, Indikator Stok Habis di Beranda, Kode Promo, Auto-Timeout & Admin Cancel Order
 
 **Tanggal:** 20 Juli 2026  
 **Status Audit:** LULUS (ZERO-ERROR)
@@ -6,10 +6,10 @@
 ---
 
 ## 1. Scope Implementasi
-*   **Search Bar & Filter Kategori Admin (`src/components/AdminProductManager.tsx`)**:
+*   **Search Bar, Filter Status & Sort Admin (`src/components/AdminProductManager.tsx`)**:
     *   **Pencarian Real-Time**: Input pencarian instant untuk memfilter produk berdasarkan **Nama Produk**, **Slug**, **Tagline**, maupun **Nama Kategori**.
-    *   **Filter Dropdown Kategori**: Pilihan filter kategori lengkap dengan jumlah total produk per kategori.
-    *   **Metrik & Tombol Reset**: Menampilkan jumlah hasil produk terfilter real-time (`Menampilkan X dari Y produk`) dan tombol reset pencarian (`X`).
+    *   **Filter Dropdown Status & Kategori**: Pilihan filter kategori dan status (`Semua Status`, `Hanya Aktif`, `Hanya Non-Aktif`).
+    *   **Sorting Multimode & Header Clickable**: Pilihan sorting via dropdown (`Urutan Default`, `Status: Aktif Pertama`, `Status: Non-Aktif Pertama`, `Nama A-Z`, `Nama Z-A`) serta klik langsung pada header kolom tabel (`PRODUK`, `STATUS`, `URUTAN`).
 *   **Indikator Stok Habis di Beranda (`src/app/(store)/page.tsx` & `ProductCard.tsx`)**:
     *   **Kalkulasi Stok Real-time**: Server mengecek persediaan varian (`AUTO_STOCK` & `AVAILABLE`) pada tiap produk secara otomatis.
     *   **Badge & Pill "Stok Habis"**: Jika produk tidak memiliki varian aktif / stok habis, kartu produk di beranda menampilkan badge merah **"Stok Habis"** di pojok kanan atas serta label *"Stok Sedang Kosong"* pada pill tagline.
