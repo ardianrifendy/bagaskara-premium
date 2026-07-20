@@ -23,6 +23,7 @@ import Link from "next/link";
 import CustomConfirmModal from "./CustomConfirmModal";
 import CustomToast, { ToastMessage } from "./CustomToast";
 import EmptyState from "./EmptyState";
+import CustomSelect from "./CustomSelect";
 
 interface Order {
   id: string;
@@ -291,25 +292,25 @@ export default function AdminOrderManager({
           </button>
 
           {/* Status Dropdown */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-zinc-400" />
-            <select
+          <div className="flex items-center gap-2 min-w-[160px]">
+            <Filter className="h-4 w-4 text-zinc-400 flex-shrink-0" />
+            <CustomSelect
+              options={[
+                { value: "ALL", label: "Semua Status" },
+                { value: "PENDING", label: "PENDING" },
+                { value: "PAID", label: "PAID" },
+                { value: "PROCESSING", label: "PROCESSING" },
+                { value: "DELIVERED", label: "DELIVERED" },
+                { value: "EXPIRED", label: "EXPIRED" },
+                { value: "FAILED", label: "FAILED" },
+                { value: "REFUNDED", label: "REFUNDED" },
+              ]}
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
+              onChange={(val) => {
+                setStatusFilter(val);
                 setCurrentPage(1);
               }}
-              className="text-xs rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-zinc-850 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="PENDING">PENDING</option>
-              <option value="PAID">PAID</option>
-              <option value="PROCESSING">PROCESSING</option>
-              <option value="DELIVERED">DELIVERED</option>
-              <option value="EXPIRED">EXPIRED</option>
-              <option value="FAILED">FAILED</option>
-              <option value="REFUNDED">REFUNDED</option>
-            </select>
+            />
           </div>
         </div>
       </div>

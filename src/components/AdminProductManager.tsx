@@ -1230,15 +1230,15 @@ export default function AdminProductManager({
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Metode Pengiriman</label>
-                  <select
+                  <CustomSelect
+                    options={[
+                      { value: "AUTO_STOCK", label: "Kirim Otomatis (AUTO STOCK)", sublabel: "Stok akun otomatis terkirim dari DB" },
+                      { value: "MANUAL_INVITE", label: "Proses Manual Admin (MANUAL INVITE)", sublabel: "Stok dikirim/di-invite manual oleh admin" },
+                      { value: "PROVIDER_API", label: "Kirim Otomatis via API Supplier (PROVIDER API)", sublabel: "Order dikirim otomatis via API Reseller" },
+                    ]}
                     value={varMode}
-                    onChange={(e) => setVarMode(e.target.value as any)}
-                    className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="AUTO_STOCK" className="dark:bg-zinc-900">Kirim Otomatis (AUTO STOCK)</option>
-                    <option value="MANUAL_INVITE" className="dark:bg-zinc-900">Proses Manual Admin (MANUAL INVITE)</option>
-                    <option value="PROVIDER_API" className="dark:bg-zinc-900">Kirim Otomatis via API Supplier (PROVIDER API)</option>
-                  </select>
+                    onChange={(val) => setVarMode(val as any)}
+                  />
                 </div>
 
                 {varMode === "PROVIDER_API" && (
@@ -1248,19 +1248,18 @@ export default function AdminProductManager({
                       <div className="text-xs text-zinc-400 py-2">Loading produk supplier...</div>
                     ) : supplierProducts.length > 0 ? (
                       <div className="space-y-2">
-                        <select
-                          value={varSupplierProductId}
-                          onChange={(e) => setVarSupplierProductId(e.target.value)}
-                          required
-                          className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
-                          <option value="" className="dark:bg-zinc-900">-- Pilih Produk Supplier --</option>
-                          {supplierProducts.map((p) => (
-                            <option key={p.id} value={p.id} className="dark:bg-zinc-900">
-                              {p.name} - ${p.price.toFixed(2)} ({p.inStock ? "Ready" : "Habis"})
-                            </option>
-                          ))}
-                        </select>
+                        <CustomSelect
+                          options={[
+                            { value: "", label: "-- Pilih Produk Supplier --" },
+                            ...supplierProducts.map((p) => ({
+                              value: p.id,
+                              label: `${p.name} - $${p.price.toFixed(2)}`,
+                              sublabel: p.inStock ? "Stok Ready" : "Stok Habis",
+                            })),
+                          ]}
+                          value={varSupplierProductId || ""}
+                          onChange={(val) => setVarSupplierProductId(val)}
+                        />
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 pl-2 leading-relaxed">
                           Pilih produk di atas untuk menghubungkan varian ini dengan supplier secara otomatis.
                         </p>
@@ -1285,14 +1284,14 @@ export default function AdminProductManager({
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Status</label>
-                  <select
+                  <CustomSelect
+                    options={[
+                      { value: "true", label: "Aktif" },
+                      { value: "false", label: "Non-Aktif" },
+                    ]}
                     value={varActive ? "true" : "false"}
-                    onChange={(e) => setVarActive(e.target.value === "true")}
-                    className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="true" className="dark:bg-zinc-900">Aktif</option>
-                    <option value="false" className="dark:bg-zinc-900">Non-Aktif</option>
-                  </select>
+                    onChange={(val) => setVarActive(val === "true")}
+                  />
                 </div>
               </div>
 
