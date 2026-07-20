@@ -50,6 +50,12 @@ export default function Footer({ csWhatsapp = "6289513679939" }: FooterProps) {
                   Kebijakan Garansi (Segera Hadir)
                 </span>
               </li>
+              {/* Discreet login admin link for mobile administrators */}
+              <li className="pt-2">
+                <Link href="/admin" className="text-xs text-zinc-400 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors">
+                  Login Admin
+                </Link>
+              </li>
             </ul>
           </div>
 

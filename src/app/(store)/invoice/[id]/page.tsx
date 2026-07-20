@@ -3,6 +3,7 @@ import { orders, deliveries, variants, settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import InvoiceClient from "@/components/InvoiceClient";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,27 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
     .limit(1);
 
   if (orderResult.length === 0) {
-    notFound();
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-200">
+        <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-8 text-center shadow-xl">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50 mb-3 tracking-tight">Invoice Tidak Ditemukan</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 leading-relaxed">
+            Invoice dengan ID <span className="font-mono text-rose-600 dark:text-rose-400 font-bold">{id}</span> tidak terdaftar di sistem kami. Silakan periksa kembali atau hubungi CS jika Anda mengalami kendala.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center w-full bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-bold rounded-full py-3.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            Kembali ke Beranda
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const order = orderResult[0];

@@ -33,46 +33,43 @@ export default function SearchInvoiceBar({ onSearch }: SearchInvoiceBarProps) {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm sm:rounded-full rounded-2xl p-1.5 transition-colors duration-200">
-        {/* Search Product Input */}
-        <div className="relative flex-1 w-full flex items-center px-3 py-2 sm:py-1">
-          <Search className="h-4 w-4 text-zinc-400 mr-2 flex-shrink-0" />
+    <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4 sm:px-0">
+      {/* Box 1: Cari Layanan Premium */}
+      <div className="group flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 shadow-md rounded-2xl md:rounded-full p-2.5 transition-all duration-300 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500">
+        <div className="flex items-center flex-1 px-3">
+          <Search className="h-5 w-5 text-zinc-400 mr-3 flex-shrink-0 group-focus-within:text-emerald-500 transition-colors" />
           <input
             type="text"
-            placeholder="Cari layanan (cth: Spotify)..."
+            placeholder="Cari layanan premium (cth: Spotify, Netflix)..."
             value={search}
             onChange={handleSearchChange}
-            className="w-full text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
+            className="w-full text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
           />
         </div>
-
-        {/* Separator on desktop */}
-        <div className="hidden sm:block h-6 w-px bg-zinc-200 dark:bg-zinc-800" />
-
-        {/* Invoice Checker Form */}
-        <form
-          onSubmit={handleInvoiceCheck}
-          className="flex-1 w-full flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 sm:border-t-0 mt-1 sm:mt-0 pt-2 sm:pt-0 pl-3 pr-1 pb-1 sm:pb-0"
-        >
-          <div className="flex items-center flex-1 mr-2">
-            <FileText className="h-4 w-4 text-zinc-400 mr-2 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari ID Invoice (BGS-xxx)..."
-              value={invoiceId}
-              onChange={(e) => setInvoiceId(e.target.value)}
-              className="w-full text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-zinc-900 dark:text-zinc-100 placeholder-zinc-400"
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 text-sm font-bold rounded-full px-5 py-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[44px]"
-          >
-            Cek
-          </button>
-        </form>
       </div>
+
+      {/* Box 2: Lacak Status Pesanan (Invoice) */}
+      <form
+        onSubmit={handleInvoiceCheck}
+        className="group flex items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 shadow-md rounded-2xl md:rounded-full p-1.5 transition-all duration-300 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500"
+      >
+        <div className="flex items-center flex-1 px-3">
+          <FileText className="h-5 w-5 text-zinc-400 mr-3 flex-shrink-0 group-focus-within:text-emerald-500 transition-colors" />
+          <input
+            type="text"
+            placeholder="Masukkan ID Invoice Anda (BGS-xxx)..."
+            value={invoiceId}
+            onChange={(e) => setInvoiceId(e.target.value)}
+            className="w-full text-sm bg-transparent border-0 focus:ring-0 focus:outline-none text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 font-mono tracking-wide"
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 text-xs sm:text-sm font-bold rounded-xl md:rounded-full px-6 py-2.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[42px] flex-shrink-0 shadow-sm"
+        >
+          Lacak
+        </button>
+      </form>
     </div>
   );
 }
