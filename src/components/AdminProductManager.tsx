@@ -8,10 +8,12 @@ import {
   deleteProduct,
   upsertVariant,
   deleteVariant,
+  bulkUpdateProductStatus,
+  bulkDeleteProducts,
 } from "@/app/actions/product";
 import { getSupplierProductsAction } from "@/app/actions/supplier";
 import { useEffect } from "react";
-import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert } from "lucide-react";
+import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
 
@@ -83,6 +85,56 @@ export default function AdminProductManager({
   const [prodBadge, setProdBadge] = useState<"HOT" | "AUTO" | "SMART" | "">("");
   const [prodActive, setProdActive] = useState(true);
   const [prodSort, setProdSort] = useState(0);
+
+  // Bulk Selection State for Products
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+
+  const toggleSelectAllProducts = () => {
+    if (selectedProductIds.length === products.length) {
+      setSelectedProductIds([]);
+    } else {
+      setSelectedProductIds(products.map((p) => p.id));
+    }
+  };
+
+  const toggleSelectProduct = (id: number) => {
+    if (selectedProductIds.includes(id)) {
+      setSelectedProductIds(selectedProductIds.filter((pid) => pid !== id));
+    } else {
+      setSelectedProductIds([...selectedProductIds, id]);
+    }
+  };
+
+  const handleBulkStatusChange = async (isActive: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    const statusLabel = isActive ? "mengaktifkan" : "menonaktifkan";
+    if (!confirm(`Apakah Anda yakin ingin ${statusLabel} ${selectedProductIds.length} produk terpilih?`)) return;
+
+    setLoading(true);
+    const res = await bulkUpdateProductStatus(selectedProductIds, isActive);
+    setLoading(false);
+
+    if (res.success) {
+      setSelectedProductIds([]);
+    } else {
+      alert(res.error || "Gagal memproses status.");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    if (!confirm(`PERINGATAN: Apakah Anda yakin ingin MENGHAPUS ${selectedProductIds.length} produk terpilih? Semua varian produk tersebut akan ikut terhapus.`)) return;
+
+    setLoading(true);
+    const res = await bulkDeleteProducts(selectedProductIds);
+    setLoading(false);
+
+    if (res.success) {
+      setSelectedProductIds([]);
+    } else {
+      alert(res.error || "Gagal menghapus produk terpilih.");
+    }
+  };
 
   // Variant State (Modal linked to selected product)
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
@@ -346,10 +398,51 @@ export default function AdminProductManager({
       {/* ---------------------------------------------------- */}
       {activeTab === "produk" && !selectedProductForVariants && (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Bulk Selection Bar */}
+            {selectedProductIds.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 p-2 px-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 dark:bg-emerald-950/40 text-xs font-bold text-emerald-900 dark:text-emerald-200 animate-in fade-in duration-200">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white font-mono font-extrabold text-[11px]">
+                  {selectedProductIds.length} Produk Dipilih
+                </span>
+
+                <button
+                  onClick={() => handleBulkStatusChange(true)}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-colors"
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  <span>Aktifkan Semua</span>
+                </button>
+                <button
+                  onClick={() => handleBulkStatusChange(false)}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors"
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                  <span>Nonaktifkan Semua</span>
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Hapus Terpilih</span>
+                </button>
+                <button
+                  onClick={() => setSelectedProductIds([])}
+                  className="px-3 py-1 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] font-bold"
+                >
+                  Batal Pilih
+                </button>
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Pilih produk menggunakan centang di tabel untuk melakukan aksi massal.
+              </div>
+            )}
+
             <button
               onClick={openProductCreate}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm ml-auto"
             >
               <Plus className="h-4 w-4" />
               <span>Tambah Produk Baru</span>
@@ -362,6 +455,15 @@ export default function AdminProductManager({
               <table className="w-full text-left border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 text-zinc-400 dark:text-zinc-500 uppercase text-[10px] tracking-wider">
+                    <th className="px-3 py-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={products.length > 0 && selectedProductIds.length === products.length}
+                        onChange={toggleSelectAllProducts}
+                        className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                        title="Pilih Semua Produk"
+                      />
+                    </th>
                     <th className="px-4 py-3 font-semibold">Produk</th>
                     <th className="px-4 py-3 font-semibold">Kategori</th>
                     <th className="px-4 py-3 font-semibold">Badge</th>
@@ -373,7 +475,7 @@ export default function AdminProductManager({
                 <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500">
+                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500">
                         Belum ada data produk. Silakan tambahkan.
                       </td>
                     </tr>
@@ -381,9 +483,25 @@ export default function AdminProductManager({
                     products.map((prod) => {
                       const category = categories.find((c) => c.id === prod.categoryId);
                       const prodVariants = variants.filter((v) => v.productId === prod.id);
+                      const isSelected = selectedProductIds.includes(prod.id);
 
                       return (
-                        <tr key={prod.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10">
+                        <tr
+                          key={prod.id}
+                          className={`transition-colors ${
+                            isSelected
+                              ? "bg-emerald-50/60 dark:bg-emerald-950/20"
+                              : "hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10"
+                          }`}
+                        >
+                          <td className="px-3 py-3.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectProduct(prod.id)}
+                              className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                            />
+                          </td>
                           <td className="px-4 py-3.5">
                             <div className="font-bold text-zinc-900 dark:text-zinc-100">{prod.name}</div>
                             <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{prod.slug}</div>

@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { categories, products, variants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -145,6 +145,32 @@ export async function deleteProduct(id: number) {
     return { success: true };
   } catch (error: any) {
     console.error("Delete Product Error:", error);
+    return { success: false, error: error?.message || "Gagal menghapus produk." };
+  }
+}
+
+export async function bulkUpdateProductStatus(ids: number[], isActive: boolean) {
+  if (!ids || ids.length === 0) return { success: false, error: "Tidak ada produk yang dipilih." };
+  try {
+    await db.update(products).set({ isActive }).where(inArray(products.id, ids));
+    revalidatePath("/admin/produk");
+    revalidatePath("/");
+    return { success: true, count: ids.length };
+  } catch (error: any) {
+    console.error("Bulk Update Product Status Error:", error);
+    return { success: false, error: error?.message || "Gagal mengubah status produk." };
+  }
+}
+
+export async function bulkDeleteProducts(ids: number[]) {
+  if (!ids || ids.length === 0) return { success: false, error: "Tidak ada produk yang dipilih." };
+  try {
+    await db.delete(products).where(inArray(products.id, ids));
+    revalidatePath("/admin/produk");
+    revalidatePath("/");
+    return { success: true, count: ids.length };
+  } catch (error: any) {
+    console.error("Bulk Delete Products Error:", error);
     return { success: false, error: error?.message || "Gagal menghapus produk." };
   }
 }
