@@ -13,7 +13,7 @@ import {
 } from "@/app/actions/product";
 import { getSupplierProductsAction } from "@/app/actions/supplier";
 import { useEffect } from "react";
-import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle, Search } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
 import CustomCheckbox from "./CustomCheckbox";
@@ -89,6 +89,29 @@ export default function AdminProductManager({
   const [prodBadge, setProdBadge] = useState<"HOT" | "AUTO" | "SMART" | "">("");
   const [prodActive, setProdActive] = useState(true);
   const [prodSort, setProdSort] = useState(0);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<number | "all">("all");
+
+  // Filtered Products
+  const filteredProducts = products.filter((prod) => {
+    if (categoryFilter !== "all" && prod.categoryId !== categoryFilter) {
+      return false;
+    }
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase().trim();
+      const category = categories.find((c) => c.id === prod.categoryId);
+      const categoryName = category?.name.toLowerCase() || "";
+      return (
+        prod.name.toLowerCase().includes(q) ||
+        prod.slug.toLowerCase().includes(q) ||
+        prod.tagline.toLowerCase().includes(q) ||
+        categoryName.includes(q)
+      );
+    }
+    return true;
+  });
 
   // Bulk Selection State for Products
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
@@ -471,89 +494,139 @@ export default function AdminProductManager({
       {/* ---------------------------------------------------- */}
       {activeTab === "produk" && !selectedProductForVariants && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Bulk Selection Bar */}
-            {selectedProductIds.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2 p-2 px-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 dark:bg-emerald-950/40 text-xs font-bold text-emerald-900 dark:text-emerald-200 animate-in fade-in duration-200">
-                <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white font-mono font-extrabold text-[11px]">
-                  {selectedProductIds.length} Produk Dipilih
-                </span>
+            {/* Search & Category Filter Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama produk, slug, tagline..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filter Dropdown */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="py-2 px-3.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">Semua Kategori ({products.length})</option>
+                  {categories.map((cat) => {
+                    const count = products.filter((p) => p.categoryId === cat.id).length;
+                    return (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
 
                 <button
-                  onClick={() => handleBulkStatusChange(true)}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-colors"
+                  onClick={openProductCreate}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm whitespace-nowrap ml-auto sm:ml-0"
                 >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  <span>Aktifkan Semua</span>
-                </button>
-                <button
-                  onClick={() => handleBulkStatusChange(false)}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors"
-                >
-                  <EyeOff className="h-3.5 w-3.5" />
-                  <span>Nonaktifkan Semua</span>
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Hapus Terpilih</span>
-                </button>
-                <button
-                  onClick={() => setSelectedProductIds([])}
-                  className="px-3 py-1 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] font-bold"
-                >
-                  Batal Pilih
+                  <Plus className="h-4 w-4" />
+                  <span>Tambah Produk Baru</span>
                 </button>
               </div>
-            ) : (
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                Pilih produk menggunakan centang di tabel untuk melakukan aksi massal.
-              </div>
-            )}
+            </div>
 
-            <button
-              onClick={openProductCreate}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm ml-auto"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Tambah Produk Baru</span>
-            </button>
-          </div>
+            {/* Bulk Selection Bar & Meta Info */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {selectedProductIds.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 p-2 px-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 dark:bg-emerald-950/40 text-xs font-bold text-emerald-900 dark:text-emerald-200 animate-in fade-in duration-200">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white font-mono font-extrabold text-[11px]">
+                    {selectedProductIds.length} Produk Dipilih
+                  </span>
 
-          {/* Product list table */}
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 text-zinc-400 dark:text-zinc-500 uppercase text-[10px] tracking-wider">
-                    <th className="px-3.5 py-3 w-10 text-center">
-                      <div className="flex justify-center">
-                        <CustomCheckbox
-                          checked={products.length > 0 && selectedProductIds.length === products.length}
-                          onChange={toggleSelectAllProducts}
-                          title="Pilih Semua Produk"
-                        />
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 font-semibold">Produk</th>
-                    <th className="px-4 py-3 font-semibold">Kategori</th>
-                    <th className="px-4 py-3 font-semibold">Badge</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Urutan</th>
-                    <th className="px-4 py-3 font-semibold text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
-                  {products.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500">
-                        Belum ada data produk. Silakan tambahkan.
-                      </td>
+                  <button
+                    onClick={() => handleBulkStatusChange(true)}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-colors"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    <span>Aktifkan Semua</span>
+                  </button>
+                  <button
+                    onClick={() => handleBulkStatusChange(false)}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition-colors"
+                  >
+                    <EyeOff className="h-3.5 w-3.5" />
+                    <span>Nonaktifkan Semua</span>
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Hapus Terpilih</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedProductIds([])}
+                    className="px-3 py-1 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] font-bold"
+                  >
+                    Batal Pilih
+                  </button>
+                </div>
+              ) : (
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                  Menampilkan <span className="font-bold text-zinc-900 dark:text-zinc-100">{filteredProducts.length}</span> dari {products.length} produk.
+                </div>
+              )}
+            </div>
+
+            {/* Product list table */}
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 text-zinc-400 dark:text-zinc-500 uppercase text-[10px] tracking-wider">
+                      <th className="px-3.5 py-3 w-10 text-center">
+                        <div className="flex justify-center">
+                          <CustomCheckbox
+                            checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                            onChange={() => {
+                              if (selectedProductIds.length === filteredProducts.length) {
+                                setSelectedProductIds([]);
+                              } else {
+                                setSelectedProductIds(filteredProducts.map((p) => p.id));
+                              }
+                            }}
+                            title="Pilih Semua Produk Terfilter"
+                          />
+                        </div>
+                      </th>
+                      <th className="px-4 py-3 font-semibold">Produk</th>
+                      <th className="px-4 py-3 font-semibold">Kategori</th>
+                      <th className="px-4 py-3 font-semibold">Badge</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 font-semibold">Urutan</th>
+                      <th className="px-4 py-3 font-semibold text-right">Aksi</th>
                     </tr>
-                  ) : (
-                    products.map((prod) => {
+                  </thead>
+                  <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
+                    {filteredProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500">
+                          {searchQuery || categoryFilter !== "all"
+                            ? `Tidak ada produk yang cocok dengan pencarian "${searchQuery}" atau filter terpilih.`
+                            : `Belum ada data produk. Silakan tambahkan.`}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredProducts.map((prod) => {
                       const category = categories.find((c) => c.id === prod.categoryId);
                       const prodVariants = variants.filter((v) => v.productId === prod.id);
                       const isSelected = selectedProductIds.includes(prod.id);
