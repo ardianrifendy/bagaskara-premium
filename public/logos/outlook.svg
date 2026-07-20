@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#0078D4"/>
+  <path d="M120 180 l136 100 l136 -100 v160 h-272 z" fill="#FFFFFF" opacity="0.95"/>
+  <path d="M120 180 h272 l-136 100 z" fill="#E0F2FE"/>
+  <circle cx="200" cy="260" r="64" fill="#005A9E"/>
+  <text x="200" y="282" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="64" fill="#FFFFFF" text-anchor="middle">O</text>
+</svg>

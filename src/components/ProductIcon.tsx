@@ -21,6 +21,9 @@ export default function ProductIcon({ name, iconUrl, size = 80, className = "" }
     else if (cleanName.includes("capcut")) src = "/logos/capcut.svg";
     else if (cleanName.includes("chatgpt") || cleanName.includes("openai") || cleanName.includes("gpt")) src = "/logos/chatgpt.svg";
     else if (cleanName.includes("claude") || cleanName.includes("anthropic")) src = "/logos/claude.svg";
+    else if (cleanName.includes("gemini")) src = "/logos/gemini.svg";
+    else if (cleanName.includes("notion")) src = "/logos/notion.svg";
+    else if (cleanName.includes("outlook") || cleanName.includes("hotmail") || cleanName.includes("email")) src = "/logos/outlook.svg";
     else if (cleanName.includes("office") || cleanName.includes("microsoft") || cleanName.includes("365")) src = "/logos/office.svg";
     else if (cleanName.includes("adobe") || cleanName.includes("photoshop")) src = "/logos/adobe.svg";
     else if (cleanName.includes("viu")) src = "/logos/viu.svg";

@@ -176,6 +176,33 @@ async function seed() {
         badge: null,
         sortOrder: 14,
       },
+      {
+        categoryId: catApps,
+        name: "Google Gemini Advanced",
+        slug: "gemini-pro",
+        tagline: "AI Terbaru dari Google dengan 1.5 Pro Model",
+        description: "Akses Gemini Advanced 1.5 Pro dengan konteks 1M token dan integrasi Google Workspace.",
+        badge: "HOT",
+        sortOrder: 15,
+      },
+      {
+        categoryId: catApps,
+        name: "Notion Plus 12M",
+        slug: "notion-plus",
+        tagline: "Workspace Produktivitas & Catatan AI",
+        description: "Akses Notion Plus tanpa batas untuk catatan, manajemen proyek, dan database AI.",
+        badge: null,
+        sortOrder: 16,
+      },
+      {
+        categoryId: catApps,
+        name: "Emails Outlook / Hotmail",
+        slug: "emails-outlook",
+        tagline: "Akun Email Microsoft Outlook Fresh Ready",
+        description: "Akun email Outlook / Hotmail fresh terverifikasi untuk kebutuhan pendaftaran & bisnis.",
+        badge: "AUTO",
+        sortOrder: 17,
+      },
     ])
     .returning();
 
@@ -228,6 +255,15 @@ async function seed() {
 
     // Coursera
     { productId: findId("coursera-plus"), name: "1 Tahun Full Access", durationDays: 365, price: 95000, comparePrice: 400000, deliveryMode: "PROVIDER_API", supplierProductId: "6a3136d8ccc64c91167242c3", warrantyDays: 365 },
+
+    // Gemini
+    { productId: findId("gemini-pro"), name: "18 Bulan Link Direct", durationDays: 540, price: 45000, comparePrice: 150000, deliveryMode: "PROVIDER_API", supplierProductId: "6a2fdb4f035a6d898f2106fg", warrantyDays: 180 },
+
+    // Notion
+    { productId: findId("notion-plus"), name: "12 Bulan Plus Member", durationDays: 365, price: 50000, comparePrice: 180000, deliveryMode: "AUTO_STOCK", warrantyDays: 365 },
+
+    // Emails Outlook
+    { productId: findId("emails-outlook"), name: "1x Akun Outlook Fresh", durationDays: 365, price: 2000, comparePrice: 5000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
   ]);
 
   // 5. Insert Settings
