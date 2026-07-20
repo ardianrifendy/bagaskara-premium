@@ -3,7 +3,6 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-// Load environment variables like Next.js does
 loadEnvConfig(process.cwd());
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -18,7 +17,7 @@ async function seed() {
   const sql = neon(databaseUrl!);
   const db = drizzle(sql, { schema });
 
-  // 1. Clear existing database contents (optional but helpful for clean seed)
+  // 1. Clear existing contents
   console.log("Clearing existing tables...");
   await db.delete(schema.deliveries);
   await db.delete(schema.stockItems);
@@ -48,7 +47,7 @@ async function seed() {
 
   // 3. Insert Products
   console.log("Seeding products...");
-  await db
+  const insertedProducts = await db
     .insert(schema.products)
     .values([
       {
@@ -93,7 +92,7 @@ async function seed() {
         slug: "canva-pro",
         tagline: "Akses jutaan template & elemen premium",
         description: "Desain apa saja dengan mudah menggunakan fitur Canva Pro, hapus background, template premium, dll.",
-        badge: null,
+        badge: "HOT",
         sortOrder: 5,
       },
       {
@@ -109,123 +108,127 @@ async function seed() {
         categoryId: catApps,
         name: "ChatGPT Plus",
         slug: "chatgpt-plus",
-        tagline: "Akses GPT-4o tanpa batas kuota gratis",
-        description: "Dapatkan respon lebih cepat, akses model terpintar GPT-4o, dan fitur tambahan ChatGPT Plus.",
+        tagline: "Akses GPT-4o & DALL-E tanpa batas",
+        description: "Dapatkan respon lebih cepat, akses model terpintar GPT-4o, dan analisis data instan.",
         badge: "SMART",
         sortOrder: 7,
       },
+      {
+        categoryId: catApps,
+        name: "Claude Pro AI",
+        slug: "claude-pro",
+        tagline: "AI Cerdas untuk Coding & Penulisan Dokumen",
+        description: "Akses Claude 3.5 Sonnet dengan konteks panjang dan performa analisis terbaik.",
+        badge: "HOT",
+        sortOrder: 8,
+      },
+      {
+        categoryId: catApps,
+        name: "Microsoft Office 365",
+        slug: "office-365",
+        tagline: "Word, Excel, PowerPoint & OneDrive 1TB",
+        description: "Lisensi resmi Microsoft 365 Plus 1 Tahun lengkap dengan penyimpanan cloud OneDrive 1TB.",
+        badge: null,
+        sortOrder: 9,
+      },
+      {
+        categoryId: catDesain,
+        name: "Adobe Express 12M",
+        slug: "adobe-express",
+        tagline: "Desain grafis & edit foto kilat dari Adobe",
+        description: "Akses ribuan template premium Adobe Express dan aset foto/vektor Adobe Stock.",
+        badge: null,
+        sortOrder: 10,
+      },
+      {
+        categoryId: catStreaming,
+        name: "Viu Premium",
+        slug: "viu-premium",
+        tagline: "Nonton Drama Korea & Asia Terlengkap",
+        description: "Streaming drakor terbaru dan variety show Asia dengan subtitle Indonesia tanpa iklan.",
+        badge: null,
+        sortOrder: 11,
+      },
+      {
+        categoryId: catApps,
+        name: "Grammarly Premium",
+        slug: "grammarly-premium",
+        tagline: "Pemeriksa Tata Bahasa & Plagiarisme",
+        description: "Perbaiki tata bahasa Inggris, nada tulisan, dan cek plagiarisme secara profesional.",
+        badge: null,
+        sortOrder: 12,
+      },
+      {
+        categoryId: catApps,
+        name: "iCloud Mail & Storage",
+        slug: "icloud-storage",
+        tagline: "Storage Tambahan & Email Custom Apple",
+        description: "Akses penyimpanan cloud Apple dan layanan email iCloud resmi.",
+        badge: null,
+        sortOrder: 13,
+      },
+      {
+        categoryId: catApps,
+        name: "Coursera Plus",
+        slug: "coursera-plus",
+        tagline: "Akses Ribuan Kursus & Sertifikat Resmi",
+        description: "Belajar skill baru dari universitas terkemuka dunia dengan akses sertifikat gratis.",
+        badge: null,
+        sortOrder: 14,
+      },
     ])
     .returning();
 
-  // 4. Insert Variants (tanpa stok — stok diisi manual via admin panel)
+  // 4. Insert Variants
   console.log("Seeding variants...");
+  const findId = (slug: string) => insertedProducts.find((p) => p.slug === slug)!.id;
 
-  // Ambil product IDs
-  const allProducts = await db.select().from(schema.products);
-  const prodNetflix = allProducts.find((p) => p.slug === "netflix-4k")!.id;
-  const prodDisney = allProducts.find((p) => p.slug === "disney-hotstar")!.id;
-  const prodSpotify = allProducts.find((p) => p.slug === "spotify-premium")!.id;
-  const prodYoutube = allProducts.find((p) => p.slug === "youtube-premium")!.id;
-  const prodCanva = allProducts.find((p) => p.slug === "canva-pro")!.id;
-  const prodCapcut = allProducts.find((p) => p.slug === "capcut-pro")!.id;
-  const prodChatgpt = allProducts.find((p) => p.slug === "chatgpt-plus")!.id;
+  await db.insert(schema.variants).values([
+    // Netflix
+    { productId: findId("netflix-4k"), name: "1 Bulan Shared", durationDays: 30, price: 30000, comparePrice: 45000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+    { productId: findId("netflix-4k"), name: "3 Bulan Shared", durationDays: 90, price: 85000, comparePrice: 120000, deliveryMode: "AUTO_STOCK", warrantyDays: 90 },
 
-  await db
-    .insert(schema.variants)
-    .values([
-      // Netflix
-      {
-        productId: prodNetflix,
-        name: "1 Bulan Shared",
-        durationDays: 30,
-        price: 30000,
-        comparePrice: 45000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      {
-        productId: prodNetflix,
-        name: "3 Bulan Shared",
-        durationDays: 90,
-        price: 85000,
-        comparePrice: 120000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 90,
-      },
-      // Disney+
-      {
-        productId: prodDisney,
-        name: "1 Bulan Shared",
-        durationDays: 30,
-        price: 25000,
-        comparePrice: 39000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      // Spotify
-      {
-        productId: prodSpotify,
-        name: "1 Bulan Individual",
-        durationDays: 30,
-        price: 20000,
-        comparePrice: 35000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      {
-        productId: prodSpotify,
-        name: "3 Bulan Individual",
-        durationDays: 90,
-        price: 55000,
-        comparePrice: 99000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 90,
-      },
-      // YouTube
-      {
-        productId: prodYoutube,
-        name: "1 Bulan Family Member",
-        durationDays: 30,
-        price: 15000,
-        comparePrice: 25000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      // Canva
-      {
-        productId: prodCanva,
-        name: "1 Bulan Premium Member",
-        durationDays: 30,
-        price: 10000,
-        comparePrice: 20000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      // CapCut
-      {
-        productId: prodCapcut,
-        name: "1 Bulan Premium",
-        durationDays: 30,
-        price: 20000,
-        comparePrice: 35000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-      // ChatGPT
-      {
-        productId: prodChatgpt,
-        name: "1 Bulan Shared",
-        durationDays: 30,
-        price: 90000,
-        comparePrice: 150000,
-        deliveryMode: "AUTO_STOCK",
-        warrantyDays: 30,
-      },
-    ])
-    .returning();
+    // Disney+
+    { productId: findId("disney-hotstar"), name: "1 Bulan Shared", durationDays: 30, price: 25000, comparePrice: 39000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
 
-  // NOTE: Tidak ada stok seed — stok akun diisi manual via Admin Panel (/admin/stok).
-  // NOTE: Tidak ada admin seed — login admin menggunakan env ADMIN_USERNAME + ADMIN_PASSWORD_HASH.
+    // Spotify
+    { productId: findId("spotify-premium"), name: "1 Bulan Individual", durationDays: 30, price: 20000, comparePrice: 35000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+    { productId: findId("spotify-premium"), name: "3 Bulan Individual", durationDays: 90, price: 55000, comparePrice: 99000, deliveryMode: "AUTO_STOCK", warrantyDays: 90 },
+
+    // YouTube
+    { productId: findId("youtube-premium"), name: "1 Bulan Family Member", durationDays: 30, price: 15000, comparePrice: 25000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+
+    // Canva
+    { productId: findId("canva-pro"), name: "1 Bulan Premium Member", durationDays: 30, price: 10000, comparePrice: 20000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+    { productId: findId("canva-pro"), name: "1 Tahun Admin Invite", durationDays: 365, price: 45000, comparePrice: 150000, deliveryMode: "PROVIDER_API", supplierProductId: "6a2fdb4f035a6d898f2106ff", warrantyDays: 365 },
+
+    // CapCut
+    { productId: findId("capcut-pro"), name: "1 Bulan Premium", durationDays: 30, price: 20000, comparePrice: 35000, deliveryMode: "PROVIDER_API", supplierProductId: "6a2fda51035a6d898f2106fe", warrantyDays: 30 },
+
+    // ChatGPT
+    { productId: findId("chatgpt-plus"), name: "1 Bulan Shared", durationDays: 30, price: 90000, comparePrice: 150000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+
+    // Claude
+    { productId: findId("claude-pro"), name: "1 Bulan Pro Member", durationDays: 30, price: 85000, comparePrice: 160000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+
+    // Office 365
+    { productId: findId("office-365"), name: "1 Tahun Full Access + 1TB", durationDays: 365, price: 35000, comparePrice: 120000, deliveryMode: "PROVIDER_API", supplierProductId: "6a2fe23a1c8697b163aedcbd", warrantyDays: 365 },
+
+    // Adobe Express
+    { productId: findId("adobe-express"), name: "1 Tahun Full Access", durationDays: 365, price: 40000, comparePrice: 180000, deliveryMode: "PROVIDER_API", supplierProductId: "6a5b873847b60c66fc160b2", warrantyDays: 365 },
+
+    // Viu
+    { productId: findId("viu-premium"), name: "3 Bulan Premium", durationDays: 90, price: 18000, comparePrice: 35000, deliveryMode: "AUTO_STOCK", warrantyDays: 90 },
+
+    // Grammarly
+    { productId: findId("grammarly-premium"), name: "1 Bulan Individual", durationDays: 30, price: 25000, comparePrice: 60000, deliveryMode: "AUTO_STOCK", warrantyDays: 30 },
+
+    // iCloud
+    { productId: findId("icloud-storage"), name: "1 Bulan Storage Mail", durationDays: 30, price: 12000, comparePrice: 25000, deliveryMode: "PROVIDER_API", supplierProductId: "6a554c34351561c645a46872", warrantyDays: 30 },
+
+    // Coursera
+    { productId: findId("coursera-plus"), name: "1 Tahun Full Access", durationDays: 365, price: 95000, comparePrice: 400000, deliveryMode: "PROVIDER_API", supplierProductId: "6a3136d8ccc64c91167242c3", warrantyDays: 365 },
+  ]);
 
   // 5. Insert Settings
   console.log("Seeding settings...");
@@ -244,9 +247,7 @@ async function seed() {
 
   console.log("-----------------------------------------");
   console.log("Database seeded successfully!");
-  console.log("Kategori, produk, dan varian telah diisi.");
-  console.log("Stok akun: KOSONG (isi manual via Admin Panel).");
-  console.log("Admin login: gunakan env ADMIN_USERNAME + ADMIN_PASSWORD_HASH.");
+  console.log("14 Produk & varian lengkap dengan ikon SVG telah dimasukkan.");
   console.log("-----------------------------------------");
   process.exit(0);
 }

@@ -20,7 +20,7 @@ export default function ProductIcon({ name, iconUrl, size = 80, className = "" }
           fill
           sizes={`${size}px`}
           className="object-cover"
-          unoptimized // To allow arbitrary external URLs without next.config domains errors
+          unoptimized
         />
       </div>
     );
@@ -98,7 +98,7 @@ export default function ProductIcon({ name, iconUrl, size = 80, className = "" }
         className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-tr from-[#7d2ae8] to-[#00c4cc] select-none shadow-md border border-[#9b51e0] ${className}`}
         style={{ width: size, height: size }}
       >
-        <span className="text-white font-extrabold tracking-tighter" style={{ fontSize: size * 0.45 }}>
+        <span className="text-white font-extrabold tracking-tighter" style={{ fontSize: size * 0.42 }}>
           Canva
         </span>
       </div>
@@ -121,8 +121,8 @@ export default function ProductIcon({ name, iconUrl, size = 80, className = "" }
     );
   }
 
-  // 7. CHATGPT
-  if (cleanName.includes("chatgpt") || cleanName.includes("openai")) {
+  // 7. CHATGPT / OPENAI
+  if (cleanName.includes("chatgpt") || cleanName.includes("openai") || cleanName.includes("gpt")) {
     return (
       <div
         className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#0f766e] to-[#115e59] border border-[#14b8a6] select-none shadow-md ${className}`}
@@ -135,6 +135,104 @@ export default function ProductIcon({ name, iconUrl, size = 80, className = "" }
           <path d="M12 22c-2.5 0-4.5-1.5-5.5-3.5m11 0c1-2 1-3.5-5.5-3.5" />
           <circle cx="12" cy="12" r="3" fill="#FFFFFF" />
         </svg>
+      </div>
+    );
+  }
+
+  // 8. CLAUDE
+  if (cleanName.includes("claude") || cleanName.includes("anthropic")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#d97706] to-[#b45309] border border-[#f59e0b] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-white font-serif font-bold italic" style={{ fontSize: size * 0.5 }}>
+          C
+        </span>
+      </div>
+    );
+  }
+
+  // 9. MICROSOFT / OFFICE
+  if (cleanName.includes("office") || cleanName.includes("microsoft") || cleanName.includes("365") || cleanName.includes("outlook")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#ea580c] to-[#c2410c] border border-[#f97316] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-white font-extrabold" style={{ fontSize: size * 0.45 }}>
+          O
+        </span>
+      </div>
+    );
+  }
+
+  // 10. ADOBE
+  if (cleanName.includes("adobe") || cleanName.includes("photoshop")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#fa0f00] border border-[#ff4d4d] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-white font-extrabold italic" style={{ fontSize: size * 0.5 }}>
+          A
+        </span>
+      </div>
+    );
+  }
+
+  // 11. VIU
+  if (cleanName.includes("viu")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#ffb800] border border-[#ffd000] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-black font-extrabold tracking-tighter" style={{ fontSize: size * 0.4 }}>
+          viu
+        </span>
+      </div>
+    );
+  }
+
+  // 12. GRAMMARLY
+  if (cleanName.includes("grammarly")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#15c39a] border border-[#38dfb7] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-white font-bold" style={{ fontSize: size * 0.5 }}>
+          G
+        </span>
+      </div>
+    );
+  }
+
+  // 13. ICLOUD / APPLE
+  if (cleanName.includes("icloud") || cleanName.includes("apple")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] border border-[#60a5fa] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <svg viewBox="0 0 24 24" fill="#FFFFFF" style={{ width: size * 0.5, height: size * 0.5 }}>
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
+        </svg>
+      </div>
+    );
+  }
+
+  // 14. COURSERA
+  if (cleanName.includes("coursera")) {
+    return (
+      <div
+        className={`rounded-2xl flex items-center justify-center flex-shrink-0 bg-[#0056D2] border border-[#2575fc] select-none shadow-md ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span className="text-white font-extrabold" style={{ fontSize: size * 0.5 }}>
+          C
+        </span>
       </div>
     );
   }
