@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="128" fill="#D97757"/>
-  <!-- Official Claude Anthropic Spark Burst -->
-  <path d="M256 90 L276 205 L376 130 L315 230 L426 256 L315 282 L376 382 L276 307 L256 422 L236 307 L136 382 L197 282 L86 256 L197 230 L136 130 L236 205 Z" fill="#FBF7EE"/>
+  <g fill="#FBF7EE" transform="translate(256, 256)">
+    <path d="M0 -150 L22 -35 L150 0 L22 35 L0 150 L-22 35 L-150 0 L-22 -35 Z"/>
+    <path d="M-90 -90 L-22 -22 L0 -120 L22 -22 L90 -90 L22 22 L120 0 L22 22 L90 90 L-22 22 L0 120 L-22 22 L-90 90 L-22 -22 L-120 0 L-22 -22 Z"/>
+  </g>
 </svg>

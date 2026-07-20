@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="128" fill="#040714"/>
-  <path d="M70 320 C160 130, 350 130, 440 320" fill="none" stroke="#00D2FF" stroke-width="22" stroke-linecap="round"/>
-  <text x="225" y="295" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-style="italic" font-size="115" fill="#FFFFFF" text-anchor="middle">Disney</text>
-  <text x="395" y="275" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="95" fill="#00D2FF">+</text>
-  <text x="256" y="380" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="42" fill="#00D2FF" letter-spacing="8" text-anchor="middle">HOTSTAR</text>
+  <path d="M120 280 C200 130, 360 130, 410 240" fill="none" stroke="#00D2FF" stroke-width="20" stroke-linecap="round"/>
+  <text x="215" y="275" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-style="italic" font-size="105" fill="#FFFFFF" text-anchor="middle">Disney</text>
+  <path d="M390 240 h30 M405 225 v30" fill="none" stroke="#00D2FF" stroke-width="16" stroke-linecap="round"/>
+  <text x="256" y="365" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="44" fill="#00D2FF" letter-spacing="8" text-anchor="middle">HOTSTAR</text>
 </svg>
