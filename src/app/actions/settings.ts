@@ -12,6 +12,8 @@ const settingsSchema = z.object({
   warrantyText: z.string().min(1, "Teks garansi wajib diisi"),
   socialProofEnabled: z.boolean(),
   staticQris: z.string().min(1, "String QRIS Statis wajib diisi"),
+  supplierApiKey: z.string().optional(),
+  supplierBaseUrl: z.string().optional(),
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;
@@ -27,7 +29,14 @@ export async function saveSettings(input: SettingsInput) {
     return { success: false, error: validation.error.errors[0]?.message || "Validasi gagal" };
   }
 
-  const { csWhatsapp, warrantyText, socialProofEnabled, staticQris } = validation.data;
+  const {
+    csWhatsapp,
+    warrantyText,
+    socialProofEnabled,
+    staticQris,
+    supplierApiKey = "",
+    supplierBaseUrl = "",
+  } = validation.data;
 
   try {
     // Update individual configuration keys
@@ -50,6 +59,23 @@ export async function saveSettings(input: SettingsInput) {
       .update(settings)
       .set({ value: staticQris.trim() })
       .where(eq(settings.key, "static_qris"));
+
+    // Upsert supplier settings to guarantee existence
+    await db
+      .insert(settings)
+      .values({ key: "supplier_api_key", value: supplierApiKey.trim() })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value: supplierApiKey.trim() },
+      });
+
+    await db
+      .insert(settings)
+      .values({ key: "supplier_base_url", value: supplierBaseUrl.trim() })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value: supplierBaseUrl.trim() },
+      });
 
     // Revalidate paths to refresh page state on next visit
     revalidatePath("/admin/settings");

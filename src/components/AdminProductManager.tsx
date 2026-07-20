@@ -9,6 +9,8 @@ import {
   upsertVariant,
   deleteVariant,
 } from "@/app/actions/product";
+import { getSupplierProductsAction } from "@/app/actions/supplier";
+import { useEffect } from "react";
 import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 
@@ -41,7 +43,8 @@ interface Variant {
   price: number;
   comparePrice: number | null;
   resellerPrice: number | null;
-  deliveryMode: "AUTO_STOCK" | "MANUAL_INVITE";
+  deliveryMode: "AUTO_STOCK" | "MANUAL_INVITE" | "PROVIDER_API";
+  supplierProductId: string | null;
   warrantyDays: number;
   isActive: boolean;
 }
@@ -89,9 +92,34 @@ export default function AdminProductManager({
   const [varPrice, setVarPrice] = useState(0);
   const [varCompare, setVarCompare] = useState("");
   const [varReseller, setVarReseller] = useState("");
-  const [varMode, setVarMode] = useState<"AUTO_STOCK" | "MANUAL_INVITE">("AUTO_STOCK");
+  const [varMode, setVarMode] = useState<"AUTO_STOCK" | "MANUAL_INVITE" | "PROVIDER_API">("AUTO_STOCK");
+  const [varSupplierProductId, setVarSupplierProductId] = useState("");
   const [varWarranty, setVarWarranty] = useState(30);
   const [varActive, setVarActive] = useState(true);
+
+  // Supplier products local states
+  const [supplierProducts, setSupplierProducts] = useState<any[]>([]);
+  const [supplierProductsLoading, setSupplierProductsLoading] = useState(false);
+
+  useEffect(() => {
+    if (varMode === "PROVIDER_API" && supplierProducts.length === 0) {
+      loadSupplierProducts();
+    }
+  }, [varMode]);
+
+  const loadSupplierProducts = async () => {
+    setSupplierProductsLoading(true);
+    try {
+      const res = await getSupplierProductsAction();
+      if (res.success && res.products) {
+        setSupplierProducts(res.products);
+      }
+    } catch (err) {
+      console.error("Gagal mengambil produk supplier:", err);
+    } finally {
+      setSupplierProductsLoading(false);
+    }
+  };
 
   // General Loading & Error
   const [loading, setLoading] = useState(false);
@@ -156,6 +184,7 @@ export default function AdminProductManager({
     setVarCompare("");
     setVarReseller("");
     setVarMode("AUTO_STOCK");
+    setVarSupplierProductId("");
     setVarWarranty(30);
     setVarActive(true);
     setError(null);
@@ -170,6 +199,7 @@ export default function AdminProductManager({
     setVarCompare(v.comparePrice ? v.comparePrice.toString() : "");
     setVarReseller(v.resellerPrice ? v.resellerPrice.toString() : "");
     setVarMode(v.deliveryMode);
+    setVarSupplierProductId(v.supplierProductId || "");
     setVarWarranty(v.warrantyDays);
     setVarActive(v.isActive);
     setError(null);
@@ -239,6 +269,7 @@ export default function AdminProductManager({
       comparePrice: varCompare ? parseInt(varCompare) : null,
       resellerPrice: varReseller ? parseInt(varReseller) : null,
       deliveryMode: varMode,
+      supplierProductId: varMode === "PROVIDER_API" ? varSupplierProductId : null,
       warrantyDays: varWarranty,
       isActive: varActive,
     });
@@ -490,11 +521,22 @@ export default function AdminProductManager({
                               className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                                 v.deliveryMode === "AUTO_STOCK"
                                   ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/50"
+                                  : v.deliveryMode === "PROVIDER_API"
+                                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-200/50"
                                   : "bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200/50"
                               }`}
                             >
-                              {v.deliveryMode === "AUTO_STOCK" ? "Otomatis" : "Manual Invite"}
+                              {v.deliveryMode === "AUTO_STOCK"
+                                ? "Otomatis"
+                                : v.deliveryMode === "PROVIDER_API"
+                                ? "API Supplier"
+                                : "Manual Invite"}
                             </span>
+                            {v.deliveryMode === "PROVIDER_API" && v.supplierProductId && (
+                              <div className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                ID: {v.supplierProductId}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3.5">{v.warrantyDays} Hari</td>
                           <td className="px-4 py-3.5">
@@ -1006,8 +1048,51 @@ export default function AdminProductManager({
                   >
                     <option value="AUTO_STOCK" className="dark:bg-zinc-900">Kirim Otomatis (AUTO STOCK)</option>
                     <option value="MANUAL_INVITE" className="dark:bg-zinc-900">Proses Manual Admin (MANUAL INVITE)</option>
+                    <option value="PROVIDER_API" className="dark:bg-zinc-900">Kirim Otomatis via API Supplier (PROVIDER API)</option>
                   </select>
                 </div>
+
+                {varMode === "PROVIDER_API" && (
+                  <div className="space-y-1.5 bg-zinc-50 dark:bg-zinc-950/30 border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl sm:col-span-2">
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Produk dari API Supplier</label>
+                    {supplierProductsLoading ? (
+                      <div className="text-xs text-zinc-400 py-2">Loading produk supplier...</div>
+                    ) : supplierProducts.length > 0 ? (
+                      <div className="space-y-2">
+                        <select
+                          value={varSupplierProductId}
+                          onChange={(e) => setVarSupplierProductId(e.target.value)}
+                          required
+                          className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="" className="dark:bg-zinc-900">-- Pilih Produk Supplier --</option>
+                          {supplierProducts.map((p) => (
+                            <option key={p.id} value={p.id} className="dark:bg-zinc-900">
+                              {p.name} - ${p.price.toFixed(2)} ({p.inStock ? "Ready" : "Habis"})
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 pl-2 leading-relaxed">
+                          Pilih produk di atas untuk menghubungkan varian ini dengan supplier secara otomatis.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Masukkan ID Produk Supplier secara manual (cth: 64abc...)"
+                          value={varSupplierProductId}
+                          onChange={(e) => setVarSupplierProductId(e.target.value)}
+                          required
+                          className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <p className="text-[10px] text-rose-500 font-semibold pl-2 leading-relaxed">
+                          API Key belum dikonfigurasi atau produk gagal dimuat. Masukkan ID Produk Supplier secara manual di atas.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Status</label>

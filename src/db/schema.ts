@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm";
 
 // Enums
 export const badgeEnum = pgEnum("product_badge", ["HOT", "AUTO", "SMART"]);
-export const deliveryModeEnum = pgEnum("delivery_mode", ["AUTO_STOCK", "MANUAL_INVITE"]);
+export const deliveryModeEnum = pgEnum("delivery_mode", ["AUTO_STOCK", "MANUAL_INVITE", "PROVIDER_API"]);
 export const stockStatusEnum = pgEnum("stock_status", ["AVAILABLE", "SOLD", "PROBLEM"]);
 export const orderStatusEnum = pgEnum("order_status", [
   "PENDING",
@@ -51,6 +51,7 @@ export const variants = pgTable("variants", {
   comparePrice: integer("compare_price"),
   resellerPrice: integer("reseller_price"),
   deliveryMode: deliveryModeEnum("delivery_mode").notNull(),
+  supplierProductId: text("supplier_product_id"),
   warrantyDays: integer("warranty_days").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });

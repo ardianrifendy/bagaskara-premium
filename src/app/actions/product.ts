@@ -36,7 +36,8 @@ const variantSchema = z.object({
   price: z.number().min(100, "Harga minimal Rp100"),
   comparePrice: z.number().nullable().optional(),
   resellerPrice: z.number().nullable().optional(),
-  deliveryMode: z.enum(["AUTO_STOCK", "MANUAL_INVITE"]),
+  deliveryMode: z.enum(["AUTO_STOCK", "MANUAL_INVITE", "PROVIDER_API"]),
+  supplierProductId: z.string().nullable().optional(),
   warrantyDays: z.number().min(0, "Masa garansi minimal 0 hari"),
   isActive: z.boolean().default(true),
 });
@@ -170,6 +171,7 @@ export async function upsertVariant(input: z.infer<typeof variantSchema>) {
           comparePrice: data.comparePrice || null,
           resellerPrice: data.resellerPrice || null,
           deliveryMode: data.deliveryMode,
+          supplierProductId: data.supplierProductId || null,
           warrantyDays: data.warrantyDays,
           isActive: data.isActive,
         })
@@ -184,6 +186,7 @@ export async function upsertVariant(input: z.infer<typeof variantSchema>) {
         comparePrice: data.comparePrice || null,
         resellerPrice: data.resellerPrice || null,
         deliveryMode: data.deliveryMode,
+        supplierProductId: data.supplierProductId || null,
         warrantyDays: data.warrantyDays,
         isActive: data.isActive,
       });

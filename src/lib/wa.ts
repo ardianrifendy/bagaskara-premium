@@ -95,4 +95,11 @@ export const waTemplates = {
       `Order *${orderId}* (${productName} - ${variantName}) telah dibayar tetapi stok habis.\n` +
       `Status order diset ke PROCESSING. Harap segera restock akun dan kirim secara manual melalui panel admin!`;
   },
+
+  supplierErrorAlert: (orderId: string, productName: string, variantName: string, errorDetail: string) => {
+    return `⚠️ *ALERT ERROR SUPPLIER API* ⚠️\n\n` +
+      `Order *${orderId}* (${productName} - ${variantName}) telah dibayar tetapi gagal diproses otomatis via API Supplier.\n\n` +
+      `*Error:* ${errorDetail}\n\n` +
+      `Status order diset ke PROCESSING. Harap segera periksa saldo/stok supplier atau proses secara manual melalui panel admin!`;
+  },
 };

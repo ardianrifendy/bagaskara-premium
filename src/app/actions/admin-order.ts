@@ -7,6 +7,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
 import { sendWhatsAppMessage, waTemplates } from "@/lib/wa";
+import { processSupplierFulfillment } from "@/lib/fulfillment";
 
 const manualFulfillSchema = z.object({
   orderId: z.string().min(1),
@@ -206,8 +207,24 @@ export async function confirmPaymentManual(orderId: string) {
     const { variant, product } = variantResult[0];
     let outcome: "DELIVERED" | "STOCK_EMPTY" | "PROCESSING" = "PROCESSING";
     let allocatedStockPayload: any = null;
+    let isProviderHandled = false;
 
-    if (variant.deliveryMode === "AUTO_STOCK") {
+    if (variant.deliveryMode === "PROVIDER_API") {
+      isProviderHandled = true;
+
+      // Update paid status first
+      await db
+        .update(orders)
+        .set({
+          paidAt: new Date(),
+          statusChangedBy: `admin:${adminName}`,
+          statusChangedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+      // Execute supplier fulfillment
+      await processSupplierFulfillment(orderId);
+    } else if (variant.deliveryMode === "AUTO_STOCK") {
       // Atomic UPDATE ... RETURNING query with FOR UPDATE SKIP LOCKED
       const updateResult = await db.execute(sql`
         UPDATE stock_items
@@ -280,42 +297,44 @@ export async function confirmPaymentManual(orderId: string) {
     }
 
     // Fire-and-forget WhatsApp notifications
-    if (outcome === "DELIVERED" && allocatedStockPayload) {
-      const payloadData = allocatedStockPayload as Record<string, any>;
-      const accountData = {
-        email: payloadData.email || "",
-        pass: payloadData.password || payloadData.pass || "",
-        profile: payloadData.profile || "-",
-        pin: payloadData.pin || "-",
-        note: payloadData.note || "",
-      };
+    if (!isProviderHandled) {
+      if (outcome === "DELIVERED" && allocatedStockPayload) {
+        const payloadData = allocatedStockPayload as Record<string, any>;
+        const accountData = {
+          email: payloadData.email || "",
+          pass: payloadData.password || payloadData.pass || "",
+          profile: payloadData.profile || "-",
+          pin: payloadData.pin || "-",
+          note: payloadData.note || "",
+        };
 
-      const msg = waTemplates.accountDelivered(
-        order.id,
-        order.productNameSnap,
-        order.variantNameSnap,
-        accountData,
-        variant.warrantyDays
-      );
-      sendWhatsAppMessage(order.waNumber, msg);
-    } else if (outcome === "STOCK_EMPTY") {
-      // Notify user order is processing
-      const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
-      sendWhatsAppMessage(order.waNumber, userMsg);
+        const msg = waTemplates.accountDelivered(
+          order.id,
+          order.productNameSnap,
+          order.variantNameSnap,
+          accountData,
+          variant.warrantyDays
+        );
+        sendWhatsAppMessage(order.waNumber, msg);
+      } else if (outcome === "STOCK_EMPTY") {
+        // Notify user order is processing
+        const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+        sendWhatsAppMessage(order.waNumber, userMsg);
 
-      // Notify admin about stock alert
-      const settingsResult = await db
-        .select()
-        .from(settings)
-        .where(eq(settings.key, "cs_whatsapp"))
-        .limit(1);
-      const adminPhone = settingsResult[0]?.value || "6289513679939";
-      const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
-      sendWhatsAppMessage(adminPhone, adminMsg);
-    } else if (outcome === "PROCESSING") {
-      // Notify user order is processing
-      const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
-      sendWhatsAppMessage(order.waNumber, userMsg);
+        // Notify admin about stock alert
+        const settingsResult = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, "cs_whatsapp"))
+          .limit(1);
+        const adminPhone = settingsResult[0]?.value || "6289513679939";
+        const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
+        sendWhatsAppMessage(adminPhone, adminMsg);
+      } else if (outcome === "PROCESSING") {
+        // Notify user order is processing
+        const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+        sendWhatsAppMessage(order.waNumber, userMsg);
+      }
     }
 
     // Revalidate paths

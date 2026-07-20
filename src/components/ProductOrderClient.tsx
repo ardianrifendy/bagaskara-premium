@@ -15,7 +15,7 @@ interface Variant {
   price: number;
   comparePrice: number | null;
   resellerPrice: number | null;
-  deliveryMode: "AUTO_STOCK" | "MANUAL_INVITE";
+  deliveryMode: "AUTO_STOCK" | "MANUAL_INVITE" | "PROVIDER_API";
   warrantyDays: number;
   isActive: boolean;
 }

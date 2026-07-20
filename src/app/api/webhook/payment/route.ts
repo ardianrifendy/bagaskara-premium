@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { orders, variants, products, stockItems, deliveries, settings } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { orders, variants, products, settings, deliveries } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { verifyCallbackSignature } from "@/lib/payment/tripay";
 import { sendWhatsAppMessage, waTemplates } from "@/lib/wa";
+import { processSupplierFulfillment } from "@/lib/fulfillment";
 
 export const dynamic = "force-dynamic";
 
@@ -75,8 +76,22 @@ export async function POST(request: Request) {
       const { variant, product } = variantResult[0];
       let outcome: "DELIVERED" | "STOCK_EMPTY" | "PROCESSING" = "PROCESSING";
       let allocatedStockPayload: any = null;
+      let isProviderHandled = false;
 
-      if (variant.deliveryMode === "AUTO_STOCK") {
+      if (variant.deliveryMode === "PROVIDER_API") {
+        isProviderHandled = true;
+        
+        // Update paid status first
+        await db
+          .update(orders)
+          .set({
+            paidAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        // Delegate to supplier fulfillment engine
+        await processSupplierFulfillment(orderId);
+      } else if (variant.deliveryMode === "AUTO_STOCK") {
         // Atomic UPDATE ... RETURNING query with FOR UPDATE SKIP LOCKED
         // This is safe from concurrent race conditions and supported in neon-http
         const updateResult = await db.execute(sql`
@@ -150,44 +165,46 @@ export async function POST(request: Request) {
       }
 
       // Fire-and-forget WhatsApp notifications
-      if (outcome === "DELIVERED" && allocatedStockPayload) {
-        const payloadData = allocatedStockPayload as Record<string, any>;
-        const accountData = {
-          email: payloadData.email || "",
-          pass: payloadData.password || payloadData.pass || "",
-          profile: payloadData.profile || "-",
-          pin: payloadData.pin || "-",
-          note: payloadData.note || "",
-        };
+      if (!isProviderHandled) {
+        if (outcome === "DELIVERED" && allocatedStockPayload) {
+          const payloadData = allocatedStockPayload as Record<string, any>;
+          const accountData = {
+            email: payloadData.email || "",
+            pass: payloadData.password || payloadData.pass || "",
+            profile: payloadData.profile || "-",
+            pin: payloadData.pin || "-",
+            note: payloadData.note || "",
+          };
 
-        const msg = waTemplates.accountDelivered(
-          order.id,
-          order.productNameSnap,
-          order.variantNameSnap,
-          accountData,
-          variant.warrantyDays
-        );
-        sendWhatsAppMessage(order.waNumber, msg);
-      } else if (outcome === "STOCK_EMPTY") {
-        console.warn(`WARNING: Stock empty for variant ID ${order.variantId}. Manual process required.`);
-        // Notify user order is processing
-        const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
-        sendWhatsAppMessage(order.waNumber, userMsg);
+          const msg = waTemplates.accountDelivered(
+            order.id,
+            order.productNameSnap,
+            order.variantNameSnap,
+            accountData,
+            variant.warrantyDays
+          );
+          sendWhatsAppMessage(order.waNumber, msg);
+        } else if (outcome === "STOCK_EMPTY") {
+          console.warn(`WARNING: Stock empty for variant ID ${order.variantId}. Manual process required.`);
+          // Notify user order is processing
+          const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+          sendWhatsAppMessage(order.waNumber, userMsg);
 
-        // Notify admin about stock alert
-        const csSetting = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, "cs_whatsapp"))
-          .limit(1);
-        const adminPhone = csSetting[0]?.value || "628123456789";
+          // Notify admin about stock alert
+          const csSetting = await db
+            .select()
+            .from(settings)
+            .where(eq(settings.key, "cs_whatsapp"))
+            .limit(1);
+          const adminPhone = csSetting[0]?.value || "628123456789";
 
-        const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
-        sendWhatsAppMessage(adminPhone, adminMsg);
-      } else if (outcome === "PROCESSING") {
-        // Notify user order is processing
-        const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
-        sendWhatsAppMessage(order.waNumber, userMsg);
+          const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
+          sendWhatsAppMessage(adminPhone, adminMsg);
+        } else if (outcome === "PROCESSING") {
+          // Notify user order is processing
+          const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+          sendWhatsAppMessage(order.waNumber, userMsg);
+        }
       }
     } else if (gatewayStatus === "EXPIRED" || gatewayStatus === "FAILED") {
       // Update order status to EXPIRED or FAILED
