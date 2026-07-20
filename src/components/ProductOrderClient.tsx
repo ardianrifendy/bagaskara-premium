@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/app/actions/order";
+import { validatePromoCode } from "@/app/actions/promo";
 import { formatRupiah } from "@/lib/format";
 import ProductIcon from "./ProductIcon";
-import { MessageSquare, CircleAlert, Sparkles, Send, ArrowLeft, ShieldCheck, Mail, Phone, FileText, Ban, CheckCircle2 } from "lucide-react";
+import { MessageSquare, CircleAlert, Sparkles, Send, ArrowLeft, ShieldCheck, Mail, Phone, FileText, Ban, CheckCircle2, Ticket } from "lucide-react";
 import Link from "next/link";
 
 interface Variant {
@@ -58,6 +59,16 @@ export default function ProductOrderClient({ product, variants, category }: Prod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Promo code states
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountAmount: number;
+    finalPrice: number;
+  } | null>(null);
+  const [validatingPromo, setValidatingPromo] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
   // Map category accent color to Tailwind text class
   const accentClasses: Record<string, string> = {
     emerald: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50",
@@ -73,6 +84,51 @@ export default function ProductOrderClient({ product, variants, category }: Prod
   const selectedVariantIsOutOfStock =
     selectedVariant?.deliveryMode === "AUTO_STOCK" && (selectedVariant?.stockCount ?? 0) <= 0;
 
+  const handleSelectVariant = (variantId: number) => {
+    setSelectedVariantId(variantId);
+    if (appliedPromo) {
+      setAppliedPromo(null);
+      setPromoInput("");
+      setPromoMessage({ text: "Varian diubah. Silakan masukkan ulang kode promo jika ada.", isError: false });
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim() || !selectedVariant) return;
+    setValidatingPromo(true);
+    setPromoMessage(null);
+
+    try {
+      const res = await validatePromoCode({
+        code: promoInput.trim(),
+        variantPrice: selectedVariant.price,
+      });
+
+      if (res.success && res.discountAmount !== undefined && res.finalPrice !== undefined) {
+        setAppliedPromo({
+          code: res.code!,
+          discountAmount: res.discountAmount,
+          finalPrice: res.finalPrice,
+        });
+        setPromoMessage({ text: res.message!, isError: false });
+      } else {
+        setAppliedPromo(null);
+        setPromoMessage({ text: res.error || "Kode promo tidak valid.", isError: true });
+      }
+    } catch (err: any) {
+      setAppliedPromo(null);
+      setPromoMessage({ text: "Gagal memproses kode promo.", isError: true });
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoMessage(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVariantId || selectedVariantIsOutOfStock) return;
@@ -86,6 +142,7 @@ export default function ProductOrderClient({ product, variants, category }: Prod
         waNumber,
         email,
         note: note.trim() || null,
+        promoCode: appliedPromo?.code || null,
       });
 
       if (response.success && response.orderId) {
@@ -359,18 +416,81 @@ export default function ProductOrderClient({ product, variants, category }: Prod
                 </span>
               </div>
 
+              {/* Promo Code Input Box */}
+              <div className="pt-1 pb-1 space-y-2">
+                <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <Ticket className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Punya Kode Promo?</span>
+                </label>
+
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50">
+                    <div className="flex items-center gap-2.5">
+                      <Ticket className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <span className="text-xs font-mono font-black text-emerald-800 dark:text-emerald-200 uppercase">
+                          {appliedPromo.code}
+                        </span>
+                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          Hemat {formatRupiah(appliedPromo.discountAmount)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Masukkan kode promo"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                      className="flex-1 text-xs sm:text-sm font-mono font-bold rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none uppercase min-h-[40px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={validatingPromo || !promoInput.trim()}
+                      className="px-5 py-2.5 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-xs font-bold transition-colors disabled:opacity-50 flex-shrink-0 min-h-[40px]"
+                    >
+                      {validatingPromo ? "Mengecek..." : "Gunakan"}
+                    </button>
+                  </div>
+                )}
+
+                {promoMessage && (
+                  <p className={`text-[11px] font-semibold pl-2 ${promoMessage.isError ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                    {promoMessage.text}
+                  </p>
+                )}
+              </div>
+
               {selectedVariant && (
-                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 pt-3">
                   <div className="flex justify-between">
                     <span>{product.name} ({selectedVariant.name})</span>
                     <span className="font-semibold text-zinc-800 dark:text-zinc-200">
                       {formatRupiah(selectedVariant.price)}
                     </span>
                   </div>
+
+                  {appliedPromo && (
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                      <span>Potongan Promo ({appliedPromo.code})</span>
+                      <span>- {formatRupiah(appliedPromo.discountAmount)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between border-t border-zinc-100 dark:border-zinc-800 pt-2 text-base font-extrabold text-zinc-900 dark:text-zinc-100">
                     <span>Total Pembayaran</span>
                     <span className="text-emerald-600 dark:text-emerald-400">
-                      {formatRupiah(selectedVariant.price)}
+                      {formatRupiah(appliedPromo ? appliedPromo.finalPrice : selectedVariant.price)}
                     </span>
                   </div>
                 </div>

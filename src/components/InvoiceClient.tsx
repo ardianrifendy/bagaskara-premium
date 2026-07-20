@@ -26,6 +26,7 @@ interface InvoiceClientProps {
     productNameSnap: string;
     variantNameSnap: string;
     price: number;
+    discountAmount?: number;
     waNumber: string;
     email: string;
     note: string | null;
@@ -241,10 +242,10 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
               </span>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <span className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50 font-mono">
-                  {formatRupiah(order.price)}
+                  {formatRupiah(order.price - (order.discountAmount || 0))}
                 </span>
                 <button
-                  onClick={() => handleCopy(order.price.toString(), "amount")}
+                  onClick={() => handleCopy((order.price - (order.discountAmount || 0)).toString(), "amount")}
                   className="p-1 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
                   aria-label="Salin total nominal tagihan"
                 >
@@ -479,6 +480,18 @@ export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsap
               {order.email}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span>Harga Produk</span>
+            <span className="font-medium text-zinc-800 dark:text-zinc-300">
+              {formatRupiah(order.price)}
+            </span>
+          </div>
+          {order.discountAmount && order.discountAmount > 0 ? (
+            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span>Potongan Promo</span>
+              <span>- {formatRupiah(order.discountAmount)}</span>
+            </div>
+          ) : null}
           {order.note && (
             <div className="flex flex-col gap-1 border-t border-zinc-50 dark:border-zinc-800/40 pt-2 text-left">
               <span className="font-bold text-[10px] uppercase text-zinc-400 tracking-wider">Catatan Pembeli</span>

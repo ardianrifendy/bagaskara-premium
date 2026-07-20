@@ -14,6 +14,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "FAILED",
   "REFUNDED",
 ]);
+export const promoTypeEnum = pgEnum("promo_type", ["PERCENTAGE", "FLAT"]);
 
 // Tables
 export const categories = pgTable("categories", {
@@ -56,6 +57,20 @@ export const variants = pgTable("variants", {
   isActive: boolean("is_active").default(true).notNull(),
 });
 
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").unique().notNull(),
+  discountType: promoTypeEnum("discount_type").notNull(),
+  discountValue: integer("discount_value").notNull(),
+  minPurchase: integer("min_purchase").default(0).notNull(),
+  maxDiscount: integer("max_discount"),
+  usageLimit: integer("usage_limit"),
+  usedCount: integer("used_count").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const orders = pgTable("orders", {
   id: text("id").primaryKey(), // e.g. BGS-XXXXXXXX
   variantId: integer("variant_id")
@@ -64,6 +79,8 @@ export const orders = pgTable("orders", {
   productNameSnap: text("product_name_snap").notNull(),
   variantNameSnap: text("variant_name_snap").notNull(),
   price: integer("price").notNull(),
+  promoCodeId: integer("promo_code_id").references(() => promoCodes.id),
+  discountAmount: integer("discount_amount").default(0).notNull(),
   waNumber: text("wa_number").notNull(),
   email: text("email").notNull(),
   note: text("note"),
@@ -135,10 +152,18 @@ export const variantsRelations = relations(variants, ({ one, many }) => ({
   orders: many(orders),
 }));
 
+export const promoCodesRelations = relations(promoCodes, ({ many }) => ({
+  orders: many(orders),
+}));
+
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   variant: one(variants, {
     fields: [orders.variantId],
     references: [variants.id],
+  }),
+  promoCode: one(promoCodes, {
+    fields: [orders.promoCodeId],
+    references: [promoCodes.id],
   }),
   delivery: one(deliveries, {
     fields: [orders.id],

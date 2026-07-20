@@ -9,6 +9,7 @@ import {
   Settings,
   Store,
   User,
+  Ticket,
 } from "lucide-react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -29,6 +30,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     { href: "/admin/produk", label: "Produk & Varian", icon: Package },
     { href: "/admin/stok", label: "Kelola Stok", icon: Database },
     { href: "/admin/order", label: "Kelola Order", icon: Receipt },
+    { href: "/admin/promo", label: "Kode Promo", icon: Ticket },
     { href: "/admin/settings", label: "Pengaturan", icon: Settings },
   ];
 
