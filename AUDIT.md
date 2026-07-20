@@ -1,4 +1,4 @@
-# AUDIT REPORT — Fitur Kode Promo & Diskon Bagaskara Premium
+# AUDIT REPORT — Fitur Kode Promo, Auto-Timeout & Admin Cancel Order
 
 **Tanggal:** 20 Juli 2026  
 **Status Audit:** LULUS (ZERO-ERROR)
@@ -6,38 +6,26 @@
 ---
 
 ## 1. Scope Implementasi
-*   **Database Schema (`src/db/schema.ts`)**:
-    *   `promoTypeEnum`: Enum `["PERCENTAGE", "FLAT"]`.
-    *   Tabel `promo_codes`: `code`, `discount_type`, `discount_value`, `min_purchase`, `max_discount`, `usage_limit`, `used_count`, `is_active`, `expires_at`.
-    *   Pembaruan `orders`: Kolom `promo_code_id` (FK to `promo_codes`) dan `discount_amount`.
-    *   Pembaruan Drizzle relations untuk `promoCodes` dan `orders`.
-*   **Server Actions (`src/app/actions/promo.ts` & `order.ts`)**:
-    *   `validatePromoCode`: Validasi ketat nama kode (uppercase), status aktif, tanggal kadaluarsa, batas kuota, dan minimal nilai order. Menghitung diskon persentase (dengan batas `maxDiscount`) atau flat Rp.
-    *   Integrasi `createOrder`: Mengkalkulasi ulang diskon di server (tidak mempercayai input client), memastikan nominal tagihan minimal Rp 1.000 (syarat Tripay QRIS), menyimpan `promo_code_id` & `discount_amount`, dan meng-increment `used_count`.
-*   **Admin Panel (`/admin/promo`)**:
-    *   Routing server page `src/app/admin/(dashboard)/promo/page.tsx`.
-    *   Komponen UI `AdminPromoManager.tsx` dengan fitur CRUD lengkap, pencarian, filter status (Aktif, Nonaktif/Kadaluarsa), kartu ringkasan kupon, `CustomSelect`, `CustomConfirmModal`, dan `CustomToast`.
-    *   Navigasi menu `Kode Promo` di Admin Sidebar (`layout.tsx`).
-*   **Client Store Checkout (`ProductOrderClient.tsx`)**:
-    *   Input kode promo interaktif di ringkasan pembayaran.
-    *   Tombol "Gunakan" & "Hapus" promo dengan pesan validasi real-time.
-    *   Perhitungan diskon dan total pembayaran transparan.
-*   **Invoice View (`InvoiceClient.tsx` & `/invoice/[id]/page.tsx`)**:
-    *   Menampilkan detail rincian harga produk, potongan promo, dan total akhir tagihan di invoice customer.
+*   **Auto-Timeout & Expiration Handler**:
+    *   **Auto-Expire di Halaman Admin (`/admin/order`)**: Setiap kali admin memuat halaman kelola transaksi, query otomatis mengecek pesanan `PENDING` yang telah melewati `expiredAt` dan langsung mengubah statusnya di DB menjadi `EXPIRED`.
+    *   **Auto-Expire di Polling API (`/api/orders/[id]/status`)**: Saat client/invoice melakukan polling status, jika batas waktu habis, status otomatis diubah ke `EXPIRED` di DB.
+    *   **Auto-Expire di Halaman Invoice (`/invoice/[id]`)**: Halaman invoice publik otomatis mendeteksi batas waktu yang terlewat dan menampilkan status `EXPIRED`.
+    *   **Cron Job Endpoint (`/api/cron/expire`)**: Cron server tetap memproses pembersihan pesanan kedaluwarsa secara berkala.
+*   **Opsi Pembatalan Pesanan oleh Admin (`AdminOrderManager.tsx` & `admin-order.ts`)**:
+    *   Server Action `cancelOrderAdmin(orderId)`: Admin dapat membatalkan pesanan status `PENDING` kapan saja secara manual.
+    *   Tombol **"Batalkan"** (Rose button) ditambahkan di tabel transaksi pada setiap pesanan `PENDING`.
+    *   Tombol **"Batalkan Pesanan"** juga ditambahkan dalam Modal Detail Transaksi lengkap dengan modal konfirmasi keamanan.
+*   **Kode Promo & Diskon (`src/db/schema.ts`, `promo.ts`, `ProductOrderClient.tsx`, `InvoiceClient.tsx`)**:
+    *   Tabel `promo_codes` & enum `promoTypeEnum`.
+    *   Validasi server-side, hitung diskon real-time di checkout, serta kelola CRUD promo di `/admin/promo`.
 
 ---
 
 ## 2. Gate Verification Output
-1.  **Schema Sync (`drizzle-kit push`)**:  
-    `[✓] Changes applied` (Berhasil menyinkronkan skema Neon PostgreSQL).
-2.  **Type Check (`npx tsc --noEmit`)**:  
-    `0 errors found` (Clean).
-3.  **Linter (`npm run lint`)**:  
-    `0 errors` (Clean).
-4.  **Production Build (`npm run build`)**:  
-    `Exit code: 0` (Halaman `/admin/promo`, `/produk/[slug]`, `/invoice/[id]` terkompilasi bersih).
-5.  **Git Synchronization**:  
-    Modifikasi telah di-commit ke branch `main` (`66b91e0`) dan di-push ke GitHub.
+1.  **Type Check (`npx tsc --noEmit`)**: `0 errors found` (Clean).
+2.  **Linter (`npm run lint`)**: `0 errors` (Clean).
+3.  **Production Build (`npm run build`)**: `Exit code: 0` (Clean).
+4.  **Git Synchronization**: Commit `fbc181d` berhasil di-push ke branch `main`.
 
 ---
 

@@ -227,105 +227,121 @@ export default function ProductOrderClient({ product, variants, category }: Prod
               </div>
 
               {/* Grid Varian */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {variants.map((variant) => {
-                  const isSelected = selectedVariantId === variant.id;
-                  const isAuto = variant.deliveryMode === "AUTO_STOCK";
-                  const stock = variant.stockCount ?? 0;
-                  const isOutOfStock = isAuto && stock <= 0;
+              {variants.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 text-center space-y-3">
+                  <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
+                    <Ban className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                      Stok / Varian Belum Tersedia
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-sm">
+                      Saat ini belum ada varian aktif atau stok tersedia untuk produk ini. Admin sedang memperbarui persediaan. Silakan cek lagi nanti atau hubungi CS.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {variants.map((variant) => {
+                    const isSelected = selectedVariantId === variant.id;
+                    const isAuto = variant.deliveryMode === "AUTO_STOCK";
+                    const stock = variant.stockCount ?? 0;
+                    const isOutOfStock = isAuto && stock <= 0;
 
-                  return (
-                    <label
-                      key={variant.id}
-                      onClick={() => {
-                        if (!isOutOfStock) {
-                          setSelectedVariantId(variant.id);
-                        }
-                      }}
-                      className={`relative flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 select-none ${
-                        isOutOfStock
-                          ? "opacity-60 bg-zinc-100/80 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 cursor-not-allowed"
-                          : isSelected
-                          ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10 ring-2 ring-emerald-500 cursor-pointer"
-                          : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="variant"
-                        value={variant.id}
-                        disabled={isOutOfStock}
-                        checked={isSelected}
-                        onChange={() => {
+                    return (
+                      <label
+                        key={variant.id}
+                        onClick={() => {
                           if (!isOutOfStock) {
                             setSelectedVariantId(variant.id);
                           }
                         }}
-                        className="sr-only"
-                      />
+                        className={`relative flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 select-none ${
+                          isOutOfStock
+                            ? "opacity-60 bg-zinc-100/80 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 cursor-not-allowed"
+                            : isSelected
+                            ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10 ring-2 ring-emerald-500 cursor-pointer"
+                            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="variant"
+                          value={variant.id}
+                          disabled={isOutOfStock}
+                          checked={isSelected}
+                          onChange={() => {
+                            if (!isOutOfStock) {
+                              setSelectedVariantId(variant.id);
+                            }
+                          }}
+                          className="sr-only"
+                        />
 
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
-                            Durasi {variant.durationDays} Hari
-                          </span>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
+                              Durasi {variant.durationDays} Hari
+                            </span>
 
-                          {/* Stock Status Badge */}
-                          {isAuto ? (
-                            stock > 0 ? (
-                              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Stok: {stock}
-                              </span>
+                            {/* Stock Status Badge */}
+                            {isAuto ? (
+                              stock > 0 ? (
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Stok: {stock}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800/60 px-2.5 py-0.5 rounded-full">
+                                  <Ban className="h-3 w-3" />
+                                  Stok Habis
+                                </span>
+                              )
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800/60 px-2.5 py-0.5 rounded-full">
-                                <Ban className="h-3 w-3" />
-                                Stok Habis
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                                <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                                Stok Ready
                               </span>
-                            )
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
-                              <CheckCircle2 className="h-3 w-3 text-blue-500" />
-                              Stok Ready
-                            </span>
-                          )}
-                        </div>
+                            )}
+                          </div>
 
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 block pt-0.5">
-                          {variant.name}
-                        </span>
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 block pt-0.5">
+                            {variant.name}
+                          </span>
 
-                        {/* Delivery badge */}
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold mt-1.5 ${
-                            isAuto
-                              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30"
-                              : "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30"
-                          }`}
-                        >
-                          {isAuto ? "Kirim Otomatis (Instan)" : "Diproses 5-30 mnt"}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-baseline justify-between">
-                        <div className="flex flex-col">
-                          {variant.comparePrice && (
-                            <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through">
-                              {formatRupiah(variant.comparePrice)}
-                            </span>
-                          )}
-                          <span className={`text-base font-extrabold ${isOutOfStock ? "text-zinc-400 dark:text-zinc-500" : "text-emerald-600 dark:text-emerald-400"}`}>
-                            {formatRupiah(variant.price)}
+                          {/* Delivery badge */}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold mt-1.5 ${
+                              isAuto
+                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30"
+                                : "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30"
+                            }`}
+                          >
+                            {isAuto ? "Kirim Otomatis (Instan)" : "Diproses 5-30 mnt"}
                           </span>
                         </div>
-                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                          Garansi {variant.warrantyDays} Hari
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+
+                        <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-baseline justify-between">
+                          <div className="flex flex-col">
+                            {variant.comparePrice && (
+                              <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through">
+                                {formatRupiah(variant.comparePrice)}
+                              </span>
+                            )}
+                            <span className={`text-base font-extrabold ${isOutOfStock ? "text-zinc-400 dark:text-zinc-500" : "text-emerald-600 dark:text-emerald-400"}`}>
+                              {formatRupiah(variant.price)}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                            Garansi {variant.warrantyDays} Hari
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Step 2: Customer Details */}
@@ -515,13 +531,18 @@ export default function ProductOrderClient({ product, variants, category }: Prod
               {/* Submit button */}
               <button
                 type="submit"
-                disabled={loading || !selectedVariantId || selectedVariantIsOutOfStock}
+                disabled={loading || !selectedVariantId || selectedVariantIsOutOfStock || variants.length === 0}
                 className="w-full inline-flex h-12 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed select-none min-h-[44px]"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-zinc-950 dark:border-t-transparent" />
                     <span>Memproses Transaksi...</span>
+                  </div>
+                ) : variants.length === 0 ? (
+                  <div className="flex items-center gap-2 text-white dark:text-zinc-950 font-bold">
+                    <Ban className="h-4 w-4" />
+                    <span>Stok / Layanan Belum Tersedia</span>
                   </div>
                 ) : selectedVariantIsOutOfStock ? (
                   <div className="flex items-center gap-2 text-white dark:text-zinc-950 font-bold">
