@@ -16,6 +16,7 @@ Konteks proyek untuk Claude Code. Baca file ini sebelum mengerjakan task apa pun
 10. **Dilarang log data sensitif.** Password akun stok, payload deliveries, dan private key TIDAK BOLEH muncul di `console.log`, log error, atau response error. Log cukup ID order + status.
 11. **Sandbox-first.** Seluruh pengembangan dan tes memakai `TRIPAY_MODE=sandbox`. DILARANG mengubah ke `production` sebelum QA fase 1 selesai dan tercatat LULUS di `QA.md`. AUDITOR A6 memverifikasi ini.
 12. **Mobile-first.** Mayoritas pembeli mengakses dari HP. AUDITOR wajib memverifikasi setiap halaman publik pada viewport 360px: tidak ada overflow horizontal, tap target minimal 44px, teks terbaca. Desktop menyusul, bukan sebaliknya.
+13. **Auto Push ke GitHub.** Setiap kali selesai mengerjakan perbaikan, fitur baru, atau task apa pun, WAJIB langsung jalankan `git add -A && git commit -m "..." && git push origin main` secara otomatis tanpa menunggu instruksi push manual dari pengguna.
 
 ## Tentang Proyek
 
