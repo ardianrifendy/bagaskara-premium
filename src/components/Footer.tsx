@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Store, MessageCircle, Clock } from "lucide-react";
 
-export default function Footer() {
+interface FooterProps {
+  csWhatsapp?: string;
+}
+
+export default function Footer({ csWhatsapp = "6289513679939" }: FooterProps) {
   return (
     <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 transition-colors duration-200">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -60,7 +64,7 @@ export default function Footer() {
                 <span>Jam Operasional: 08:00 - 22:00 WIB</span>
               </div>
               <a
-                href="https://wa.me/6289513679939" // Placeholder link, will load CS WA Number from DB in phase 2
+                href={`https://wa.me/${csWhatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500"

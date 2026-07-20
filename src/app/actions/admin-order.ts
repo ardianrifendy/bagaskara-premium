@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { orders, deliveries, variants, products } from "@/db/schema";
+import { orders, deliveries, variants, products, settings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -304,7 +304,12 @@ export async function confirmPaymentManual(orderId: string) {
       sendWhatsAppMessage(order.waNumber, userMsg);
 
       // Notify admin about stock alert
-      const adminPhone = "6289513679939"; // default CS WA
+      const settingsResult = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, "cs_whatsapp"))
+        .limit(1);
+      const adminPhone = settingsResult[0]?.value || "6289513679939";
       const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
       sendWhatsAppMessage(adminPhone, adminMsg);
     } else if (outcome === "PROCESSING") {
