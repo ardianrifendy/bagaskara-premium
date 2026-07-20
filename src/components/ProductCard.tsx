@@ -46,11 +46,11 @@ export default function ProductCard({ product, categoryName, categoryAccent }: P
       )}
 
       {/* Product Icon with subtle bottom border/shadow */}
-      <div className="my-5 flex items-center justify-center relative">
+      <div className="my-3 flex items-center justify-center relative">
         <ProductIcon
           name={product.name}
           iconUrl={product.iconUrl}
-          size={84}
+          size={56}
           className="group-hover:scale-105 transition-transform duration-300 shadow-sm"
         />
       </div>
