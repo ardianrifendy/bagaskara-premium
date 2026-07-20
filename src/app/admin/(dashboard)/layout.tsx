@@ -38,8 +38,10 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hidden md:flex flex-col flex-shrink-0">
         {/* Brand header */}
         <div className="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800">
-          <Link href="/" className="flex items-center gap-2 font-sans font-extrabold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">
-            <Store className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
+          <Link href="/" className="flex items-center gap-2.5 font-sans font-extrabold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 group">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-sm">
+              <Store className="h-4.5 w-4.5 stroke-[2.25]" />
+            </div>
             <span>Bagaskara Admin</span>
           </Link>
         </div>
@@ -69,8 +71,10 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
         {/* Header bar */}
         <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between px-6 flex-shrink-0">
           {/* Left: Section name / Brand logo on mobile */}
-          <div className="flex items-center gap-2">
-            <Store className="h-5 w-5 text-emerald-600 dark:text-emerald-500 md:hidden" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-sm md:hidden">
+              <Store className="h-4.5 w-4.5 stroke-[2.25]" />
+            </div>
             <span className="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 md:hidden">
               Bagaskara Admin
             </span>

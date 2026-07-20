@@ -12,9 +12,11 @@ export default function Footer({ csWhatsapp = "6289513679939" }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Column 1: Brand & Description */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Store className="h-6 w-6 text-emerald-600 dark:text-emerald-500" />
-              <span className="font-sans text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-md shadow-emerald-500/25">
+                <Store className="h-6 w-6 stroke-[2.25]" />
+              </div>
+              <span className="font-sans text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
                 Bagaskara Premium
               </span>
             </div>

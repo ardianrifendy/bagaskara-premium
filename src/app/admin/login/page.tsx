@@ -38,11 +38,13 @@ export default function AdminLoginPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-200">
       <div className="w-full max-w-md space-y-6">
         {/* Branding & Title */}
-        <div className="flex flex-col items-center text-center space-y-2">
-          <Link href="/" className="flex items-center gap-2 group p-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg">
-            <Store className="h-8 w-8 text-emerald-600 dark:text-emerald-500" />
-            <span className="font-sans text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Bagaskara Premium
+        <div className="flex flex-col items-center text-center space-y-3">
+          <Link href="/" className="flex items-center gap-3 group p-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-zinc-950 shadow-lg shadow-emerald-500/30 transition-transform group-hover:scale-105">
+              <Store className="h-7 w-7 stroke-[2.25]" />
+            </div>
+            <span className="font-sans text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Bagaskara <span className="text-emerald-600 dark:text-emerald-500">Premium</span>
             </span>
           </Link>
           <div className="pt-2">
