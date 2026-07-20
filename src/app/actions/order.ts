@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { orders, variants, products } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { orders, variants, products, stockItems } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { customAlphabet } from "nanoid";
 import { createTransaction } from "@/lib/payment/tripay";
@@ -48,6 +48,21 @@ export async function createOrder(input: OrderInput) {
     }
 
     const { variant, product } = variantResult[0];
+
+    // 2b. Check stock availability if deliveryMode is AUTO_STOCK
+    if (variant.deliveryMode === "AUTO_STOCK") {
+      const stockResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(stockItems)
+        .where(and(eq(stockItems.variantId, variant.id), eq(stockItems.status, "AVAILABLE")));
+      const availableStock = stockResult[0]?.count || 0;
+      if (availableStock < 1) {
+        return {
+          success: false,
+          error: `Stok untuk varian "${variant.name}" sedang habis. Silakan pilih varian lain atau hubungi CS.`,
+        };
+      }
+    }
 
     // 3. Generate uppercase Order ID: BGS-XXXXXXXX
     const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

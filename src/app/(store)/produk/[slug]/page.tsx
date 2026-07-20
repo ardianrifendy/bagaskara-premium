@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { products, variants, categories } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { products, variants, categories, stockItems } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import ProductOrderClient from "@/components/ProductOrderClient";
 
@@ -57,10 +57,25 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
+  // 4. Calculate available stock counts for AUTO_STOCK variants
+  const variantsWithStock = await Promise.all(
+    activeVariants.map(async (v) => {
+      if (v.deliveryMode === "AUTO_STOCK") {
+        const stockResult = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(stockItems)
+          .where(and(eq(stockItems.variantId, v.id), eq(stockItems.status, "AVAILABLE")));
+        const count = stockResult[0]?.count || 0;
+        return { ...v, stockCount: count };
+      }
+      return { ...v, stockCount: 999 }; // Virtual/unlimited for manual or provider API
+    })
+  );
+
   return (
     <ProductOrderClient
       product={product}
-      variants={activeVariants}
+      variants={variantsWithStock}
       category={category}
     />
   );

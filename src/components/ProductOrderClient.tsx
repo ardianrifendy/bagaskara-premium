@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createOrder } from "@/app/actions/order";
 import { formatRupiah } from "@/lib/format";
 import ProductIcon from "./ProductIcon";
-import { MessageSquare, CircleAlert, Sparkles, Send, ArrowLeft, ShieldCheck, Mail, Phone, FileText } from "lucide-react";
+import { MessageSquare, CircleAlert, Sparkles, Send, ArrowLeft, ShieldCheck, Mail, Phone, FileText, Ban, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 interface Variant {
@@ -18,6 +18,7 @@ interface Variant {
   deliveryMode: "AUTO_STOCK" | "MANUAL_INVITE" | "PROVIDER_API";
   warrantyDays: number;
   isActive: boolean;
+  stockCount: number;
 }
 
 interface Product {
@@ -44,7 +45,13 @@ interface ProductOrderClientProps {
 
 export default function ProductOrderClient({ product, variants, category }: ProductOrderClientProps) {
   const router = useRouter();
-  const [selectedVariantId, setSelectedVariantId] = useState<number>(variants[0]?.id || 0);
+
+  // Auto-select first variant that has stock available
+  const defaultAvailableVariant = variants.find(
+    (v) => v.deliveryMode !== "AUTO_STOCK" || (v.stockCount ?? 0) > 0
+  ) || variants[0];
+
+  const [selectedVariantId, setSelectedVariantId] = useState<number>(defaultAvailableVariant?.id || 0);
   const [waNumber, setWaNumber] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
@@ -63,10 +70,12 @@ export default function ProductOrderClient({ product, variants, category }: Prod
 
   // Find currently selected variant details
   const selectedVariant = variants.find((v) => v.id === selectedVariantId);
+  const selectedVariantIsOutOfStock =
+    selectedVariant?.deliveryMode === "AUTO_STOCK" && (selectedVariant?.stockCount ?? 0) <= 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedVariantId) return;
+    if (!selectedVariantId || selectedVariantIsOutOfStock) return;
 
     setError(null);
     setLoading(true);
@@ -165,33 +174,70 @@ export default function ProductOrderClient({ product, variants, category }: Prod
                 {variants.map((variant) => {
                   const isSelected = selectedVariantId === variant.id;
                   const isAuto = variant.deliveryMode === "AUTO_STOCK";
+                  const stock = variant.stockCount ?? 0;
+                  const isOutOfStock = isAuto && stock <= 0;
 
                   return (
                     <label
                       key={variant.id}
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      className={`relative flex flex-col justify-between p-4 rounded-2xl border cursor-pointer transition-all duration-200 select-none ${
-                        isSelected
-                          ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10 ring-2 ring-emerald-500"
-                          : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700"
+                      onClick={() => {
+                        if (!isOutOfStock) {
+                          setSelectedVariantId(variant.id);
+                        }
+                      }}
+                      className={`relative flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 select-none ${
+                        isOutOfStock
+                          ? "opacity-60 bg-zinc-100/80 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 cursor-not-allowed"
+                          : isSelected
+                          ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/10 ring-2 ring-emerald-500 cursor-pointer"
+                          : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer"
                       }`}
                     >
                       <input
                         type="radio"
                         name="variant"
                         value={variant.id}
+                        disabled={isOutOfStock}
                         checked={isSelected}
-                        onChange={() => setSelectedVariantId(variant.id)}
+                        onChange={() => {
+                          if (!isOutOfStock) {
+                            setSelectedVariantId(variant.id);
+                          }
+                        }}
                         className="sr-only"
                       />
 
                       <div className="space-y-1">
-                        <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
-                          Durasi {variant.durationDays} Hari
-                        </span>
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 block">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
+                            Durasi {variant.durationDays} Hari
+                          </span>
+
+                          {/* Stock Status Badge */}
+                          {isAuto ? (
+                            stock > 0 ? (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Stok: {stock}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800/60 px-2.5 py-0.5 rounded-full">
+                                <Ban className="h-3 w-3" />
+                                Stok Habis
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                              <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                              Stok Ready
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 block pt-0.5">
                           {variant.name}
                         </span>
+
                         {/* Delivery badge */}
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold mt-1.5 ${
@@ -200,7 +246,7 @@ export default function ProductOrderClient({ product, variants, category }: Prod
                               : "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30"
                           }`}
                         >
-                          {isAuto ? "Kirim Otomatis" : "Diproses 5-30 mnt"}
+                          {isAuto ? "Kirim Otomatis (Instan)" : "Diproses 5-30 mnt"}
                         </span>
                       </div>
 
@@ -211,7 +257,7 @@ export default function ProductOrderClient({ product, variants, category }: Prod
                               {formatRupiah(variant.comparePrice)}
                             </span>
                           )}
-                          <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                          <span className={`text-base font-extrabold ${isOutOfStock ? "text-zinc-400 dark:text-zinc-500" : "text-emerald-600 dark:text-emerald-400"}`}>
                             {formatRupiah(variant.price)}
                           </span>
                         </div>
@@ -330,6 +376,14 @@ export default function ProductOrderClient({ product, variants, category }: Prod
                 </div>
               )}
 
+              {/* Out of Stock Warning Banner */}
+              {selectedVariantIsOutOfStock && (
+                <div className="flex items-center gap-2 p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/80 dark:bg-rose-950/40 text-xs font-bold text-rose-600 dark:text-rose-400 leading-normal">
+                  <CircleAlert className="h-4 w-4 flex-shrink-0" />
+                  <span>Stok untuk varian yang Anda pilih sedang habis. Silakan pilih varian lain atau hubungi CS.</span>
+                </div>
+              )}
+
               {/* Error box */}
               {error && (
                 <div className="flex items-center gap-2 p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 text-xs font-semibold text-rose-600 dark:text-rose-400 leading-normal">
@@ -341,13 +395,18 @@ export default function ProductOrderClient({ product, variants, category }: Prod
               {/* Submit button */}
               <button
                 type="submit"
-                disabled={loading || !selectedVariantId}
+                disabled={loading || !selectedVariantId || selectedVariantIsOutOfStock}
                 className="w-full inline-flex h-12 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed select-none min-h-[44px]"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-zinc-950 dark:border-t-transparent" />
                     <span>Memproses Transaksi...</span>
+                  </div>
+                ) : selectedVariantIsOutOfStock ? (
+                  <div className="flex items-center gap-2 text-white dark:text-zinc-950 font-bold">
+                    <Ban className="h-4 w-4" />
+                    <span>Stok Varian Habis</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
