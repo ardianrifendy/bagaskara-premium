@@ -104,6 +104,51 @@ Pastikan seluruh tipe TypeScript dan ESLint bersih:
 npm run build
 ```
 
+## Menjalankan WhatsApp Bot API Server
+
+Aplikasi ini menyertakan script WhatsApp Bot mandiri (`scripts/wa-bot.js`) yang bertindak sebagai jembatan (API) untuk mengirim notifikasi dan detail akun ke pembeli. 
+
+Bot ini menggunakan `whatsapp-web.js` dan **tidak memerlukan login token API pihak ketiga** (cukup scan QR Code via WhatsApp Web).
+
+### 1. Persiapan Dependensi Sistem (Khusus VPS Linux)
+Jika VPS Anda menggunakan Linux (Ubuntu/Debian), pastikan dependensi chrome terinstal agar Puppeteer (whatsapp-web.js) bisa berjalan normal:
+```bash
+sudo apt-get update
+sudo apt-get install -y libgbm-dev wget gnupg ca-certificates procps libxss1 \
+  libasound2 libatk-bridge2.0-0 libgtk-3-0 libnsl-dev libx11-xcb1 \
+  libxcb-dri3-0 libxcomposite1 libxcursor1 libxdamage1 libxext6 \
+  libxfixes3 libxi6 libxrandr2 libxrender1 libxtst6 libpango-1.0-0 \
+  libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgpg-error0 \
+  libnspr4 libnss3 libxshmfence1
+```
+
+### 2. Jalankan Bot WhatsApp
+Jalankan perintah berikut di root folder proyek:
+```bash
+npm run wa-bot
+```
+
+### 3. Scan QR Code
+* Saat pertama kali dijalankan, QR Code akan muncul di terminal VPS/Local Anda.
+* Buka WhatsApp di HP Anda -> **Perangkat Tertaut (Linked Devices)** -> **Tautkan Perangkat (Link a Device)**.
+* Scan QR Code yang ada di terminal.
+* Setelah sukses, status akan berubah menjadi: `✅ Bot WhatsApp terhubung dan siap mengirim notifikasi!`.
+* Sesi akan disimpan di folder `.wwebjs_auth/` secara otomatis, sehingga Anda tidak perlu men-scan ulang saat me-restart bot.
+
+### 4. Menjalankan di Background dengan PM2 (Rekomendasi VPS)
+Untuk memastikan bot tetap berjalan 24 jam dan otomatis menyala saat server restart:
+```bash
+# Instal PM2 secara global jika belum ada
+npm install -y -g pm2
+
+# Jalankan script bot dengan PM2
+pm2 start scripts/wa-bot.js --name "wa-bot-bagaskara"
+
+# Menyimpan proses PM2 agar restart otomatis saat server reboot
+pm2 save
+pm2 startup
+```
+
 ---
 
 ## Integrasi & Konfigurasi Eksternal

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { orders, variants, products, stockItems, deliveries } from "@/db/schema";
+import { orders, variants, products, stockItems, deliveries, settings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { verifyCallbackSignature } from "@/lib/payment/tripay";
 import { sendWhatsAppMessage, waTemplates } from "@/lib/wa";
@@ -175,7 +175,13 @@ export async function POST(request: Request) {
         sendWhatsAppMessage(order.waNumber, userMsg);
 
         // Notify admin about stock alert
-        const adminPhone = "08123456789"; // fallback admin phone
+        const csSetting = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, "cs_whatsapp"))
+          .limit(1);
+        const adminPhone = csSetting[0]?.value || "628123456789";
+
         const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
         sendWhatsAppMessage(adminPhone, adminMsg);
       } else if (outcome === "PROCESSING") {
