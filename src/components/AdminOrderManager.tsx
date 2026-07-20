@@ -15,8 +15,14 @@ import {
   Send,
   Ban,
   ExternalLink,
+  Download,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import CustomConfirmModal from "./CustomConfirmModal";
+import CustomToast, { ToastMessage } from "./CustomToast";
+import EmptyState from "./EmptyState";
 
 interface Order {
   id: string;
@@ -130,38 +136,109 @@ export default function AdminOrderManager({
     }
   };
 
-  const handleRefund = async (orderId: string) => {
-    if (!confirm("Apakah Anda yakin ingin merubah status order ini menjadi REFUNDED?")) return;
-    setLoading(true);
+  // Pagination & Custom Modal State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
-    const res = await refundOrderManual(orderId);
-    setLoading(false);
-    if (res.success) {
-      // Close details and refresh
-      setSelectedOrder(null);
-    } else {
-      alert(res.error);
-    }
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "danger" | "warning" | "info";
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const showToast = (type: "success" | "error" | "info", text: string) => {
+    setToast({ id: Date.now().toString(), type, text });
   };
 
-  const handleConfirmPayment = async (orderId: string) => {
-    if (!confirm("Apakah Anda yakin sudah menerima pembayaran penuh untuk order ini?")) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await confirmPaymentManual(orderId);
-      if (res.success) {
-        alert("Pembayaran berhasil dikonfirmasi.");
-      } else {
-        alert(res.error || "Gagal mengonfirmasi pembayaran.");
-      }
-    } catch (err: any) {
-      alert(err?.message || "Terjadi kesalahan koneksi.");
-    } finally {
-      setLoading(false);
-    }
+  const handleRefund = (orderId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Refund Pesanan",
+      message: `Apakah Anda yakin ingin merubah status order ${orderId} menjadi REFUNDED?`,
+      variant: "warning",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        const res = await refundOrderManual(orderId);
+        setLoading(false);
+        if (res.success) {
+          setSelectedOrder(null);
+          showToast("success", "Status order berhasil diubah ke REFUNDED.");
+        } else {
+          showToast("error", res.error || "Gagal melakukan refund.");
+        }
+      },
+    });
   };
+
+  const handleConfirmPayment = (orderId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Konfirmasi Pembayaran Manual",
+      message: `Apakah Anda yakin sudah menerima pembayaran penuh untuk ID Invoice ${orderId}?`,
+      variant: "info",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await confirmPaymentManual(orderId);
+          if (res.success) {
+            showToast("success", "Pembayaran berhasil dikonfirmasi!");
+          } else {
+            showToast("error", res.error || "Gagal mengonfirmasi pembayaran.");
+          }
+        } catch (err: any) {
+          showToast("error", err?.message || "Terjadi kesalahan koneksi.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // Export Sales CSV Report
+  const exportSalesCSV = () => {
+    if (filteredOrders.length === 0) {
+      showToast("info", "Tidak ada data transaksi untuk diekspor.");
+      return;
+    }
+
+    const headers = ["Invoice ID", "Produk", "Varian", "Harga (Rp)", "WA Pembeli", "Email Pembeli", "Status", "Tanggal"];
+    const rows = filteredOrders.map((o) =>
+      [
+        o.id,
+        `"${o.productNameSnap}"`,
+        `"${o.variantNameSnap}"`,
+        o.price,
+        `"${o.waNumber}"`,
+        `"${o.email}"`,
+        o.status,
+        `"${o.createdAt}"`,
+      ].join(",")
+    );
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `laporan_penjualan_bagaskara_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("success", "Laporan penjualan CSV berhasil diunduh.");
+  };
+
+  // Paginated Orders
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(start, start + itemsPerPage);
+  }, [filteredOrders, currentPage]);
 
   // Helper styles for statuses
   const statusBadges: Record<string, string> = {
@@ -187,36 +264,53 @@ export default function AdminOrderManager({
       </div>
 
       {/* Filter and Search controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Search */}
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <input
             type="text"
-            placeholder="Cari ID Invoice atau WhatsApp..."
+            placeholder="Cari ID Invoice, WA, email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full text-xs rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-10 pr-4 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
           />
         </div>
 
-        {/* Status Dropdown */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-zinc-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-zinc-850 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Export Sales CSV */}
+          <button
+            onClick={exportSalesCSV}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors"
           >
-            <option value="ALL">Semua Status</option>
-            <option value="PENDING">PENDING</option>
-            <option value="PAID">PAID</option>
-            <option value="PROCESSING">PROCESSING</option>
-            <option value="DELIVERED">DELIVERED</option>
-            <option value="EXPIRED">EXPIRED</option>
-            <option value="FAILED">FAILED</option>
-            <option value="REFUNDED">REFUNDED</option>
-          </select>
+            <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
+            <span>Ekspor Laporan CSV</span>
+          </button>
+
+          {/* Status Dropdown */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-zinc-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="text-xs rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-zinc-850 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="PENDING">PENDING</option>
+              <option value="PAID">PAID</option>
+              <option value="PROCESSING">PROCESSING</option>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="EXPIRED">EXPIRED</option>
+              <option value="FAILED">FAILED</option>
+              <option value="REFUNDED">REFUNDED</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -236,14 +330,17 @@ export default function AdminOrderManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[11px] sm:text-xs">
-              {filteredOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 font-sans">
-                    Tidak ada data transaksi order yang cocok.
+                  <td colSpan={7} className="px-4 py-12 text-center">
+                    <EmptyState
+                      title="Transaksi Tidak Ditemukan"
+                      description="Belum ada transaksi order yang sesuai dengan filter atau kata kunci pencarian Anda."
+                    />
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((o) => (
+                paginatedOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10">
                     <td className="px-4 py-3.5 font-bold text-zinc-900 dark:text-zinc-100 select-all font-mono">
                       {o.id}
@@ -303,6 +400,31 @@ export default function AdminOrderManager({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-850/30 text-xs text-zinc-500">
+            <span>
+              Halaman {currentPage} dari {totalPages} ({filteredOrders.length} total transaksi)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 disabled:opacity-30 hover:bg-white dark:hover:bg-zinc-800 transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 disabled:opacity-30 hover:bg-white dark:hover:bg-zinc-800 transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ---------------------------------------------------- */}
@@ -574,6 +696,19 @@ export default function AdminOrderManager({
           </div>
         </div>
       )}
+
+      {/* Global Confirm Modal & Toast */}
+      {confirmModal && (
+        <CustomConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          variant={confirmModal.variant}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+      <CustomToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

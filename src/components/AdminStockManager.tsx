@@ -1,11 +1,33 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { bulkAddStock, updateStockStatus, deleteStock } from "@/app/actions/stock";
+import { bulkAddStock, updateStockStatus, deleteStock, bulkDeleteStock } from "@/app/actions/stock";
 import { getSupplierProductsAction } from "@/app/actions/supplier";
-import { Plus, Trash2, ShieldAlert, CircleCheck, CheckCircle2, ClipboardCopy, CircleAlert, Eye, EyeOff, Globe, RefreshCw, Link2, Server } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ShieldAlert,
+  CircleCheck,
+  CheckCircle2,
+  ClipboardCopy,
+  CircleAlert,
+  Eye,
+  EyeOff,
+  Globe,
+  RefreshCw,
+  Link2,
+  Server,
+  Search,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
+import CustomCheckbox from "./CustomCheckbox";
+import CustomConfirmModal from "./CustomConfirmModal";
+import CustomToast, { ToastMessage } from "./CustomToast";
+import EmptyState from "./EmptyState";
 
 interface Variant {
   id: number;
@@ -48,6 +70,27 @@ export default function AdminStockManager({
     defaultSelectedVariantId || variants[0]?.id || 0
   );
   const [statusFilter, setStatusFilter] = useState<"ALL" | "AVAILABLE" | "SOLD" | "PROBLEM">("ALL");
+
+  // Search & Selection & Pagination State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStockIds, setSelectedStockIds] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+
+  // Custom Modal & Toast State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "danger" | "warning" | "info";
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const showToast = (type: "success" | "error" | "info", text: string) => {
+    setToast({ id: Date.now().toString(), type, text });
+  };
 
   // View tabs
   const [viewTab, setViewTab] = useState<"LOCAL" | "SUPPLIER">("LOCAL");
@@ -161,27 +204,130 @@ export default function AdminStockManager({
   const handleStatusToggle = async (id: number, currentStatus: "AVAILABLE" | "SOLD" | "PROBLEM") => {
     const nextStatus = currentStatus === "PROBLEM" ? "AVAILABLE" : "PROBLEM";
     const res = await updateStockStatus(id, nextStatus);
-    if (!res.success) alert(res.error);
+    if (res.success) {
+      showToast("success", `Status stok berhasil diubah ke ${nextStatus}.`);
+    } else {
+      showToast("error", res.error || "Gagal mengubah status stok.");
+    }
   };
 
-  const handleStockDelete = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus stok akun ini?")) return;
-    const res = await deleteStock(id);
-    if (!res.success) alert(res.error);
+  const handleStockDelete = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Stok Akun",
+      message: "Apakah Anda yakin ingin menghapus stok akun ini secara permanen?",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const res = await deleteStock(id);
+        if (res.success) {
+          showToast("success", "Stok akun berhasil dihapus.");
+        } else {
+          showToast("error", res.error || "Gagal menghapus stok.");
+        }
+      },
+    });
   };
 
-  // Filtered Stock List for Display
+  const handleBulkStockDelete = () => {
+    if (selectedStockIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Massal Stok Akun",
+      message: `Apakah Anda yakin ingin menghapus ${selectedStockIds.length} stok akun terpilih secara permanen?`,
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        const res = await bulkDeleteStock(selectedStockIds);
+        setLoading(false);
+        if (res.success) {
+          setSelectedStockIds([]);
+          showToast("success", `Berhasil menghapus ${res.count} stok akun.`);
+        } else {
+          showToast("error", res.error || "Gagal menghapus stok terpilih.");
+        }
+      },
+    });
+  };
+
+  // Export CSV Handler
+  const exportStockCSV = () => {
+    if (filteredStocks.length === 0) {
+      showToast("info", "Tidak ada stok akun untuk diekspor.");
+      return;
+    }
+
+    const headers = ["ID", "Email", "Password", "Profile", "PIN", "Note", "Status", "Sold Order ID", "Created At"];
+    const rows = filteredStocks.map((s) => {
+      const p = s.payloadJson as Record<string, any>;
+      return [
+        s.id,
+        `"${p.email || ""}"`,
+        `"${p.password || p.pass || ""}"`,
+        `"${p.profile || ""}"`,
+        `"${p.pin || ""}"`,
+        `"${p.note || ""}"`,
+        s.status,
+        s.soldOrderId || "",
+        `"${s.createdAt}"`,
+      ].join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const currentVarName = variants.find((v) => v.id === selectedVariantId)?.name || "stock";
+    link.setAttribute("download", `stok_bagaskara_${currentVarName}_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("success", "File CSV stok berhasil diunduh.");
+  };
+
+  // Filtered Stock List for Display with Search Query
   const filteredStocks = useMemo(() => {
     return stockItems.filter((stock) => {
-      // 1. Filter by Variant
       if (stock.variantId !== selectedVariantId) return false;
-
-      // 2. Filter by Status
       if (statusFilter !== "ALL" && stock.status !== statusFilter) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const payload = stock.payloadJson as Record<string, any>;
+        const email = (payload.email || "").toLowerCase();
+        const profile = (payload.profile || "").toLowerCase();
+        const note = (payload.note || "").toLowerCase();
+        const soldId = (stock.soldOrderId || "").toLowerCase();
+        return email.includes(q) || profile.includes(q) || note.includes(q) || soldId.includes(q);
+      }
 
       return true;
     });
-  }, [stockItems, selectedVariantId, statusFilter]);
+  }, [stockItems, selectedVariantId, statusFilter, searchQuery]);
+
+  // Paginated Stocks
+  const totalPages = Math.ceil(filteredStocks.length / itemsPerPage) || 1;
+  const paginatedStocks = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredStocks.slice(start, start + itemsPerPage);
+  }, [filteredStocks, currentPage]);
+
+  const toggleSelectAll = () => {
+    if (selectedStockIds.length === paginatedStocks.length) {
+      setSelectedStockIds([]);
+    } else {
+      setSelectedStockIds(paginatedStocks.map((s) => s.id));
+    }
+  };
+
+  const toggleSelectStock = (id: number) => {
+    if (selectedStockIds.includes(id)) {
+      setSelectedStockIds(selectedStockIds.filter((sid) => sid !== id));
+    } else {
+      setSelectedStockIds([...selectedStockIds, id]);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -335,7 +481,7 @@ export default function AdminStockManager({
       {/* STOCK LIST & INVENTORY FILTER */}
       {/* ---------------------------------------------------- */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
           <div>
             <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
               Inventori & Stok Akun
@@ -345,23 +491,68 @@ export default function AdminStockManager({
             </p>
           </div>
 
-          {/* Filter status */}
-          <div className="flex flex-wrap gap-2 text-xs">
-            {(["ALL", "AVAILABLE", "SOLD", "PROBLEM"] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setStatusFilter(filter)}
-                className={`px-4 py-1.5 rounded-full font-semibold transition-all border ${
-                  statusFilter === filter
-                    ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-zinc-950 font-bold border-emerald-600 dark:border-emerald-500"
-                    : "bg-white border-zinc-200 text-zinc-500 hover:text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
-                }`}
-              >
-                {filter === "ALL" ? "Semua Status" : filter}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Cari email/profil/catatan..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-48 sm:w-64 pl-9 pr-3 py-1.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Export CSV */}
+            <button
+              onClick={exportStockCSV}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
+              <span>Ekspor CSV</span>
+            </button>
+
+            {/* Filter status */}
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {(["ALL", "AVAILABLE", "SOLD", "PROBLEM"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => {
+                    setStatusFilter(filter);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
+                    statusFilter === filter
+                      ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-zinc-950 font-bold border-emerald-600 dark:border-emerald-500"
+                      : "bg-white border-zinc-200 text-zinc-500 hover:text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
+                  }`}
+                >
+                  {filter === "ALL" ? "Semua Status" : filter}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Bulk Action Bar */}
+        {selectedStockIds.length > 0 && (
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-200 dark:border-emerald-900/50">
+            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              {selectedStockIds.length} stok akun terpilih
+            </span>
+            <button
+              onClick={handleBulkStockDelete}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-600 text-white text-xs font-bold hover:bg-rose-500 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Hapus Terpilih</span>
+            </button>
+          </div>
+        )}
 
         {/* Stock table */}
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
@@ -369,6 +560,14 @@ export default function AdminStockManager({
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20 text-zinc-400 dark:text-zinc-500 uppercase text-[10px] tracking-wider">
+                  <th className="px-4 py-3 w-10">
+                    <CustomCheckbox
+                      checked={
+                        paginatedStocks.length > 0 && selectedStockIds.length === paginatedStocks.length
+                      }
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-4 py-3 font-semibold">ID</th>
                   <th className="px-4 py-3 font-semibold">Email / Username</th>
                   <th className="px-4 py-3 font-semibold">Password</th>
@@ -380,22 +579,37 @@ export default function AdminStockManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[11px] sm:text-xs">
-                {filteredStocks.length === 0 ? (
+                {paginatedStocks.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 font-sans">
-                      Tidak ada stok akun dengan filter terpilih.
+                    <td colSpan={9} className="px-4 py-12 text-center">
+                      <EmptyState
+                        title="Stok Akun Tidak Ditemukan"
+                        description="Tidak ada data stok akun yang sesuai dengan filter atau kata kunci pencarian Anda."
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredStocks.map((stock) => {
+                  paginatedStocks.map((stock) => {
                     const payload = stock.payloadJson as Record<string, any>;
                     const email = payload.email || "-";
                     const pass = payload.password || payload.pass || "-";
                     const profile = payload.profile || "-";
                     const pin = payload.pin || "-";
+                    const isSelected = selectedStockIds.includes(stock.id);
 
                     return (
-                      <tr key={stock.id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10">
+                      <tr
+                        key={stock.id}
+                        className={`hover:bg-zinc-50/30 dark:hover:bg-zinc-850/10 transition-colors ${
+                          isSelected ? "bg-emerald-50/40 dark:bg-emerald-955/10" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3.5">
+                          <CustomCheckbox
+                            checked={isSelected}
+                            onChange={() => toggleSelectStock(stock.id)}
+                          />
+                        </td>
                         <td className="px-4 py-3.5 text-zinc-400 font-sans">{stock.id}</td>
                         <td className="px-4 py-3.5 font-bold text-zinc-900 dark:text-zinc-100 font-mono select-all">
                           {email}
@@ -470,10 +684,35 @@ export default function AdminStockManager({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-850/30 text-xs text-zinc-500">
+              <span>
+                Halaman {currentPage} dari {totalPages} ({filteredStocks.length} total item)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 disabled:opacity-30 hover:bg-white dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 disabled:opacity-30 hover:bg-white dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        </div>
-        </div>
-      ) : (
+      </div>
+    </div>
+  ) : (
         /* Render Supplier Catalog */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -574,6 +813,19 @@ export default function AdminStockManager({
           )}
         </div>
       )}
+
+      {/* Global Confirm Modal & Toast */}
+      {confirmModal && (
+        <CustomConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          variant={confirmModal.variant}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+      <CustomToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
