@@ -13,7 +13,7 @@ import {
 } from "@/app/actions/product";
 import { getSupplierProductsAction } from "@/app/actions/supplier";
 import { useEffect } from "react";
-import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle, Search } from "lucide-react";
+import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert, EyeOff, CheckCircle, Search, ArrowUpDown } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import CustomSelect from "./CustomSelect";
 import CustomCheckbox from "./CustomCheckbox";
@@ -90,28 +90,54 @@ export default function AdminProductManager({
   const [prodActive, setProdActive] = useState(true);
   const [prodSort, setProdSort] = useState(0);
 
-  // Search & Filter State
+  // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<number | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [sortBy, setSortBy] = useState<"default" | "status_active" | "status_inactive" | "name_asc" | "name_desc">("default");
 
-  // Filtered Products
-  const filteredProducts = products.filter((prod) => {
-    if (categoryFilter !== "all" && prod.categoryId !== categoryFilter) {
-      return false;
-    }
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase().trim();
-      const category = categories.find((c) => c.id === prod.categoryId);
-      const categoryName = category?.name.toLowerCase() || "";
-      return (
-        prod.name.toLowerCase().includes(q) ||
-        prod.slug.toLowerCase().includes(q) ||
-        prod.tagline.toLowerCase().includes(q) ||
-        categoryName.includes(q)
-      );
-    }
-    return true;
-  });
+  // Filtered & Sorted Products
+  const filteredProducts = products
+    .filter((prod) => {
+      if (categoryFilter !== "all" && prod.categoryId !== categoryFilter) {
+        return false;
+      }
+      if (statusFilter === "active" && !prod.isActive) {
+        return false;
+      }
+      if (statusFilter === "inactive" && prod.isActive) {
+        return false;
+      }
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase().trim();
+        const category = categories.find((c) => c.id === prod.categoryId);
+        const categoryName = category?.name.toLowerCase() || "";
+        return (
+          prod.name.toLowerCase().includes(q) ||
+          prod.slug.toLowerCase().includes(q) ||
+          prod.tagline.toLowerCase().includes(q) ||
+          categoryName.includes(q)
+        );
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "status_active") {
+        if (a.isActive === b.isActive) return a.sortOrder - b.sortOrder;
+        return a.isActive ? -1 : 1;
+      }
+      if (sortBy === "status_inactive") {
+        if (a.isActive === b.isActive) return a.sortOrder - b.sortOrder;
+        return a.isActive ? 1 : -1;
+      }
+      if (sortBy === "name_asc") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "name_desc") {
+        return b.name.localeCompare(a.name);
+      }
+      return a.sortOrder - b.sortOrder;
+    });
 
   // Bulk Selection State for Products
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
@@ -516,12 +542,13 @@ export default function AdminProductManager({
                 )}
               </div>
 
-              {/* Category Filter Dropdown */}
+              {/* Category, Status & Sort Filter Dropdowns */}
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                {/* Category Dropdown */}
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-                  className="py-2 px-3.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors cursor-pointer"
+                  className="py-2 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors cursor-pointer"
                 >
                   <option value="all">Semua Kategori ({products.length})</option>
                   {categories.map((cat) => {
@@ -532,6 +559,30 @@ export default function AdminProductManager({
                       </option>
                     );
                   })}
+                </select>
+
+                {/* Status Filter Dropdown */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="py-2 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors cursor-pointer"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="active">Hanya Aktif</option>
+                  <option value="inactive">Hanya Non-Aktif</option>
+                </select>
+
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="py-2 px-3 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors cursor-pointer"
+                >
+                  <option value="default">Urutan Default</option>
+                  <option value="status_active">Status: Aktif Pertama</option>
+                  <option value="status_inactive">Status: Non-Aktif Pertama</option>
+                  <option value="name_asc">Nama: A - Z</option>
+                  <option value="name_desc">Nama: Z - A</option>
                 </select>
 
                 <button
@@ -608,11 +659,38 @@ export default function AdminProductManager({
                           />
                         </div>
                       </th>
-                      <th className="px-4 py-3 font-semibold">Produk</th>
+                      <th
+                        onClick={() => setSortBy(sortBy === "name_asc" ? "name_desc" : "name_asc")}
+                        className="px-4 py-3 font-semibold cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                        title="Klik untuk mengurutkan berdasarkan nama"
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span>Produk</span>
+                          <ArrowUpDown className="h-3 w-3 opacity-70" />
+                        </div>
+                      </th>
                       <th className="px-4 py-3 font-semibold">Kategori</th>
                       <th className="px-4 py-3 font-semibold">Badge</th>
-                      <th className="px-4 py-3 font-semibold">Status</th>
-                      <th className="px-4 py-3 font-semibold">Urutan</th>
+                      <th
+                        onClick={() => setSortBy(sortBy === "status_active" ? "status_inactive" : "status_active")}
+                        className="px-4 py-3 font-semibold cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                        title="Klik untuk mengurutkan berdasarkan status"
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span>Status</span>
+                          <ArrowUpDown className="h-3 w-3 opacity-70" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => setSortBy("default")}
+                        className="px-4 py-3 font-semibold cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                        title="Klik untuk mereset urutan ke default"
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span>Urutan</span>
+                          <ArrowUpDown className="h-3 w-3 opacity-70" />
+                        </div>
+                      </th>
                       <th className="px-4 py-3 font-semibold text-right">Aksi</th>
                     </tr>
                   </thead>
