@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductIcon from "./ProductIcon";
 import Badge from "./Badge";
+import { Ban } from "lucide-react";
 
 interface ProductCardProps {
   product: {
@@ -9,6 +10,7 @@ interface ProductCardProps {
     tagline: string;
     badge: "HOT" | "AUTO" | "SMART" | null;
     iconUrl?: string | null;
+    isOutOfStock?: boolean;
   };
   categoryName: string;
   categoryAccent: string;
@@ -36,12 +38,24 @@ export default function ProductCard({ product, categoryName, categoryAccent }: P
   return (
     <Link
       href={`/produk/${product.slug}`}
-      className={`group relative flex flex-col items-center justify-between rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 text-center transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 ${hoverAccent}`}
+      className={`group relative flex flex-col items-center justify-between rounded-3xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 text-center transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+        product.isOutOfStock ? "opacity-90 border-rose-200/60 dark:border-rose-900/40" : hoverAccent
+      }`}
     >
       {/* Top Left Badge */}
       {product.badge && (
         <div className="absolute left-3.5 top-3.5 z-10">
           <Badge type={product.badge} />
+        </div>
+      )}
+
+      {/* Top Right Out-of-Stock Badge */}
+      {product.isOutOfStock && (
+        <div className="absolute right-3.5 top-3.5 z-10">
+          <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-955/80 border border-rose-200 dark:border-rose-900/60 px-2.5 py-0.5 rounded-full shadow-xs">
+            <Ban className="h-2.5 w-2.5 flex-shrink-0" />
+            Stok Habis
+          </span>
         </div>
       )}
 
@@ -51,7 +65,9 @@ export default function ProductCard({ product, categoryName, categoryAccent }: P
           name={product.name}
           iconUrl={product.iconUrl}
           size={56}
-          className="group-hover:scale-105 transition-transform duration-300 shadow-sm"
+          className={`group-hover:scale-105 transition-transform duration-300 shadow-sm ${
+            product.isOutOfStock ? "grayscale-[30%]" : ""
+          }`}
         />
       </div>
 
@@ -67,8 +83,12 @@ export default function ProductCard({ product, categoryName, categoryAccent }: P
         </div>
 
         {/* Tagline wrapped in elegant pill */}
-        <div className="inline-flex items-center justify-center rounded-full bg-zinc-50 border border-zinc-100 dark:bg-zinc-800/40 dark:border-zinc-800/20 px-3 py-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 w-full line-clamp-1">
-          {product.tagline}
+        <div className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium w-full line-clamp-1 ${
+          product.isOutOfStock
+            ? "bg-rose-50/70 border-rose-200/50 dark:bg-rose-955/30 dark:border-rose-900/30 text-rose-600 dark:text-rose-400 font-semibold"
+            : "bg-zinc-50 border-zinc-100 dark:bg-zinc-800/40 dark:border-zinc-800/20 text-zinc-500 dark:text-zinc-400"
+        }`}>
+          {product.isOutOfStock ? "Stok Sedang Kosong" : product.tagline}
         </div>
       </div>
     </Link>

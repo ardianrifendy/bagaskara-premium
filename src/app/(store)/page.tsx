@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { categories, products } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { categories, products, variants, stockItems } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import LandingClient from "@/components/LandingClient";
 
 // Force dynamic or dynamic-revalidate. In Next.js, we want fresh catalog details.
@@ -30,9 +30,45 @@ export default async function Page() {
     .where(eq(products.isActive, true))
     .orderBy(products.sortOrder);
 
+  // Calculate stock status for each product
+  const productsWithStockStatus = await Promise.all(
+    activeProducts.map(async (p) => {
+      const activeVariants = await db
+        .select({
+          id: variants.id,
+          deliveryMode: variants.deliveryMode,
+        })
+        .from(variants)
+        .where(and(eq(variants.productId, p.id), eq(variants.isActive, true)));
+
+      if (activeVariants.length === 0) {
+        return { ...p, isOutOfStock: true };
+      }
+
+      let hasStock = false;
+      for (const v of activeVariants) {
+        if (v.deliveryMode !== "AUTO_STOCK") {
+          hasStock = true;
+          break;
+        } else {
+          const countRes = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(stockItems)
+            .where(and(eq(stockItems.variantId, v.id), eq(stockItems.status, "AVAILABLE")));
+          if ((countRes[0]?.count || 0) > 0) {
+            hasStock = true;
+            break;
+          }
+        }
+      }
+
+      return { ...p, isOutOfStock: !hasStock };
+    })
+  );
+
   return (
     <div className="min-h-screen">
-      <LandingClient categories={allCategories} products={activeProducts} />
+      <LandingClient categories={allCategories} products={productsWithStockStatus} />
     </div>
   );
 }

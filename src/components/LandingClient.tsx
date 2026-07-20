@@ -23,6 +23,7 @@ interface Product {
   iconUrl?: string | null;
   isActive: boolean;
   sortOrder: number;
+  isOutOfStock?: boolean;
 }
 
 interface LandingClientProps {
