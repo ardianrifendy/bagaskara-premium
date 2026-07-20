@@ -19,6 +19,7 @@ export default async function AdminStockPage({ searchParams }: AdminStockPagePro
       productId: variants.productId,
       name: variants.name,
       productName: products.name,
+      supplierProductId: variants.supplierProductId,
     })
     .from(variants)
     .innerJoin(products, eq(variants.productId, products.id))
