@@ -274,7 +274,7 @@ export default function AdminStockManager({
             <button
               type="submit"
               disabled={loading || parsedItems.length === 0}
-              className="w-full inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-955 dark:hover:bg-emerald-400 transition-colors duration-200 disabled:opacity-50 select-none min-h-[44px]"
+              className="w-full inline-flex h-11 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:text-zinc-955 dark:hover:bg-emerald-400 transition-colors duration-200 disabled:opacity-50 select-none"
             >
               {loading ? "Menyimpan..." : `Simpan ${parsedItems.filter(i => i.isValid).length} Akun`}
             </button>
