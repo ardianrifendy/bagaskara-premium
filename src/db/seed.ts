@@ -230,7 +230,7 @@ async function seed() {
   // 5. Insert Settings
   console.log("Seeding settings...");
   await db.insert(schema.settings).values([
-    { key: "cs_whatsapp", value: "628123456789" },
+    { key: "cs_whatsapp", value: "6289513679939" },
     {
       key: "warranty_text",
       value: "Garansi mencakup: akun tidak premium, salah password, profile bermasalah. Garansi tidak berlaku apabila Anda merubah password atau detail akun.",

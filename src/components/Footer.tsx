@@ -60,7 +60,7 @@ export default function Footer() {
                 <span>Jam Operasional: 08:00 - 22:00 WIB</span>
               </div>
               <a
-                href="https://wa.me/628123456789" // Placeholder link, will load CS WA Number from DB in phase 2
+                href="https://wa.me/6289513679939" // Placeholder link, will load CS WA Number from DB in phase 2
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500"

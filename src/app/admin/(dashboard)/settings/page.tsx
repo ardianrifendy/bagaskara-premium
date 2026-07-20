@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
     return allSettings.find((s) => s.key === key)?.value || defaultValue;
   };
 
-  const csWhatsapp = getSettingValue("cs_whatsapp", "628123456789");
+  const csWhatsapp = getSettingValue("cs_whatsapp", "6289513679939");
   const warrantyText = getSettingValue(
     "warranty_text",
     "Garansi mencakup: akun tidak premium, salah password, profile bermasalah. Garansi tidak berlaku apabila Anda merubah password atau detail akun."
