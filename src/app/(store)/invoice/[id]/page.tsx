@@ -53,6 +53,19 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
 
   const order = orderResult[0];
 
+  // 1.5. Auto-expire if order is PENDING and past expiredAt
+  if (order.status === "PENDING" && new Date(order.expiredAt) <= new Date()) {
+    await db
+      .update(orders)
+      .set({
+        status: "EXPIRED",
+        statusChangedBy: "system:auto_timeout",
+        statusChangedAt: new Date(),
+      })
+      .where(eq(orders.id, id));
+    order.status = "EXPIRED";
+  }
+
   // 2. Fetch associated variant to get warrantyDays
   const variantResult = await db
     .select({

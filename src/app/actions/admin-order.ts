@@ -348,3 +348,48 @@ export async function confirmPaymentManual(orderId: string) {
     return { success: false, error: error?.message || "Gagal mengonfirmasi pembayaran." };
   }
 }
+
+export async function cancelOrderAdmin(orderId: string) {
+  const session = await getSession();
+  if (!session.isLoggedIn || !session.username) {
+    return { success: false, error: "Akses tidak sah." };
+  }
+
+  const adminName = session.username;
+
+  try {
+    const orderResult = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (orderResult.length === 0) {
+      return { success: false, error: "Pesanan tidak ditemukan." };
+    }
+
+    const order = orderResult[0];
+
+    if (order.status !== "PENDING") {
+      return { success: false, error: "Hanya pesanan berstatus PENDING yang dapat dibatalkan." };
+    }
+
+    await db
+      .update(orders)
+      .set({
+        status: "EXPIRED",
+        statusChangedBy: `admin:${adminName}`,
+        statusChangedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId));
+
+    revalidatePath("/admin/order");
+    revalidatePath("/admin");
+    revalidatePath(`/invoice/${orderId}`);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Cancel Order Admin Error:", error);
+    return { success: false, error: error?.message || "Gagal membatalkan pesanan." };
+  }
+}

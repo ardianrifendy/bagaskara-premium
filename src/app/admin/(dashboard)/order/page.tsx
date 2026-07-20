@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { orders, deliveries } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq, and, lte } from "drizzle-orm";
 import AdminOrderManager from "@/components/AdminOrderManager";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,17 @@ interface AdminOrderPageProps {
 }
 
 export default async function AdminOrdersPage({ searchParams }: AdminOrderPageProps) {
+  // 0. Auto-expire any PENDING orders past their expiration time
+  const now = new Date();
+  await db
+    .update(orders)
+    .set({
+      status: "EXPIRED",
+      statusChangedBy: "system:auto_timeout",
+      statusChangedAt: now,
+    })
+    .where(and(eq(orders.status, "PENDING"), lte(orders.expiredAt, now)));
+
   // 1. Fetch all orders ordered by newest
   const allOrders = await db
     .select()

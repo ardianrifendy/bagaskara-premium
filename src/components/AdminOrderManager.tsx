@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { fulfillOrderManual, refundOrderManual, confirmPaymentManual } from "@/app/actions/admin-order";
+import { fulfillOrderManual, refundOrderManual, confirmPaymentManual, cancelOrderAdmin } from "@/app/actions/admin-order";
 import { formatRupiah, formatDateTime, formatDate } from "@/lib/format";
 import {
   Search,
@@ -202,6 +202,33 @@ export default function AdminOrderManager({
     });
   };
 
+  const handleCancelOrder = (orderId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Batalkan Pesanan",
+      message: `Apakah Anda yakin ingin membatalkan pesanan dengan ID Invoice ${orderId}? Status akan diubah menjadi EXPIRED.`,
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await cancelOrderAdmin(orderId);
+          if (res.success) {
+            setSelectedOrder(null);
+            showToast("success", "Pesanan berhasil dibatalkan.");
+          } else {
+            showToast("error", res.error || "Gagal membatalkan pesanan.");
+          }
+        } catch (err: any) {
+          showToast("error", err?.message || "Terjadi kesalahan koneksi.");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // Export Sales CSV Report
   const exportSalesCSV = () => {
     if (filteredOrders.length === 0) {
@@ -371,13 +398,22 @@ export default function AdminOrderManager({
                     </td>
                     <td className="px-4 py-3.5 text-right space-x-2 font-sans">
                       {o.status === "PENDING" && (
-                        <button
-                          onClick={() => handleConfirmPayment(o.id)}
-                          disabled={loading}
-                          className="inline-flex h-8 items-center justify-center gap-1 rounded-full bg-amber-600 hover:bg-amber-500 px-3 text-[11px] font-bold text-white transition-colors disabled:opacity-50"
-                        >
-                          Konfirmasi Bayar
-                        </button>
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleConfirmPayment(o.id)}
+                            disabled={loading}
+                            className="inline-flex h-8 items-center justify-center gap-1 rounded-full bg-amber-600 hover:bg-amber-500 px-3 text-[11px] font-bold text-white transition-colors disabled:opacity-50"
+                          >
+                            Konfirmasi Bayar
+                          </button>
+                          <button
+                            onClick={() => handleCancelOrder(o.id)}
+                            disabled={loading}
+                            className="inline-flex h-8 items-center justify-center gap-1 rounded-full bg-rose-600 hover:bg-rose-500 px-3 text-[11px] font-bold text-white transition-colors disabled:opacity-50"
+                          >
+                            Batalkan
+                          </button>
+                        </div>
                       )}
                       {o.status === "PROCESSING" && (
                         <button
@@ -546,7 +582,7 @@ export default function AdminOrderManager({
                 </div>
               )}
 
-              {/* Action buttons (Refund) */}
+              {/* Action buttons (Confirm / Cancel / Refund) */}
               <div className="border-t border-zinc-150 dark:border-zinc-800 pt-4 flex flex-wrap gap-2 justify-between items-center">
                 {/* Invoice Public Link */}
                 <Link
@@ -557,6 +593,28 @@ export default function AdminOrderManager({
                   <span>Buka Invoice Publik</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
+
+                {/* Pending action buttons */}
+                {selectedOrder.status === "PENDING" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleConfirmPayment(selectedOrder.id)}
+                      disabled={loading}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-amber-600 hover:bg-amber-500 px-4 text-xs font-bold text-white transition-colors"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      <span>Konfirmasi Bayar</span>
+                    </button>
+                    <button
+                      onClick={() => handleCancelOrder(selectedOrder.id)}
+                      disabled={loading}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-rose-600 hover:bg-rose-500 px-4 text-xs font-bold text-white transition-colors"
+                    >
+                      <Ban className="h-3.5 w-3.5" />
+                      <span>Batalkan Pesanan</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Refund manual */}
                 {["PAID", "PROCESSING", "DELIVERED"].includes(selectedOrder.status) && (
