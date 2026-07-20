@@ -5,6 +5,7 @@ import { bulkAddStock, updateStockStatus, deleteStock } from "@/app/actions/stoc
 import { getSupplierProductsAction } from "@/app/actions/supplier";
 import { Plus, Trash2, ShieldAlert, CircleCheck, CheckCircle2, ClipboardCopy, CircleAlert, Eye, EyeOff, Globe, RefreshCw, Link2, Server } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
+import CustomSelect from "./CustomSelect";
 
 interface Variant {
   id: number;
@@ -227,17 +228,14 @@ export default function AdminStockManager({
             {/* Select Varian */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Varian Target</label>
-              <select
+              <CustomSelect
+                options={variants.map((v) => ({
+                  value: v.id,
+                  label: `${v.productName} (${v.name})`,
+                }))}
                 value={selectedVariantId}
-                onChange={(e) => setSelectedVariantId(parseInt(e.target.value) || 0)}
-                className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              >
-                {variants.map((v) => (
-                  <option key={v.id} value={v.id} className="dark:bg-zinc-900">
-                    {v.productName} ({v.name})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedVariantId(Number(val))}
+              />
             </div>
 
             {/* Paste Textarea */}

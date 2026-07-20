@@ -80,13 +80,13 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
 
             {/* Profile chip */}
-            <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 rounded-full px-3 py-1 bg-zinc-50 dark:bg-zinc-950/20 text-xs font-bold text-zinc-700 dark:text-zinc-300">
-              <User className="h-3.5 w-3.5" />
-              <span>{session.username}</span>
+            <div className="inline-flex h-10 items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800 rounded-full px-5 bg-zinc-50 dark:bg-zinc-900/80 text-xs font-extrabold text-zinc-800 dark:text-zinc-100 shadow-sm">
+              <User className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="capitalize tracking-wide">{session.username}</span>
             </div>
 
             <AdminLogoutButton />

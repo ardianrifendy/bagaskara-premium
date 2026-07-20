@@ -13,6 +13,7 @@ import { getSupplierProductsAction } from "@/app/actions/supplier";
 import { useEffect } from "react";
 import { Plus, Edit2, Trash2, Settings, FolderOpen, ListPlus, X, CircleAlert } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
+import CustomSelect from "./CustomSelect";
 
 interface Category {
   id: number;
@@ -723,16 +724,16 @@ export default function AdminProductManager({
               {/* Accent Color */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Warna Aksen</label>
-                <select
+                <CustomSelect
+                  options={[
+                    { value: "emerald", label: "Emerald (Green)" },
+                    { value: "amber", label: "Amber (Yellow)" },
+                    { value: "rose", label: "Rose (Red)" },
+                    { value: "blue", label: "Blue" },
+                  ]}
                   value={catAccent}
-                  onChange={(e) => setCatAccent(e.target.value)}
-                  className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="emerald" className="dark:bg-zinc-900">Emerald (Green)</option>
-                  <option value="amber" className="dark:bg-zinc-900">Amber (Yellow)</option>
-                  <option value="rose" className="dark:bg-zinc-900">Rose (Red)</option>
-                  <option value="blue" className="dark:bg-zinc-900">Blue</option>
-                </select>
+                  onChange={(val) => setCatAccent(val)}
+                />
               </div>
 
               {/* Sort Order */}
@@ -797,17 +798,14 @@ export default function AdminProductManager({
               {/* Product Category */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Kategori</label>
-                <select
+                <CustomSelect
+                  options={categories.map((cat) => ({
+                    value: cat.id,
+                    label: cat.name,
+                  }))}
                   value={prodCatId}
-                  onChange={(e) => setProdCatId(parseInt(e.target.value))}
-                  className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-4 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id} className="dark:bg-zinc-900">
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setProdCatId(Number(val))}
+                />
               </div>
 
               {/* Product Name */}
@@ -883,16 +881,16 @@ export default function AdminProductManager({
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Badge</label>
-                  <select
+                  <CustomSelect
+                    options={[
+                      { value: "", label: "None" },
+                      { value: "HOT", label: "HOT" },
+                      { value: "AUTO", label: "AUTO" },
+                      { value: "SMART", label: "SMART" },
+                    ]}
                     value={prodBadge}
-                    onChange={(e) => setProdBadge(e.target.value as any)}
-                    className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="" className="dark:bg-zinc-900">None</option>
-                    <option value="HOT" className="dark:bg-zinc-900">HOT</option>
-                    <option value="AUTO" className="dark:bg-zinc-900">AUTO</option>
-                    <option value="SMART" className="dark:bg-zinc-900">SMART</option>
-                  </select>
+                    onChange={(val) => setProdBadge(val)}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -908,14 +906,14 @@ export default function AdminProductManager({
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Status</label>
-                  <select
+                  <CustomSelect
+                    options={[
+                      { value: "true", label: "Aktif" },
+                      { value: "false", label: "Non-Aktif" },
+                    ]}
                     value={prodActive ? "true" : "false"}
-                    onChange={(e) => setProdActive(e.target.value === "true")}
-                    className="w-full text-sm rounded-full border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="true" className="dark:bg-zinc-900">Aktif</option>
-                    <option value="false" className="dark:bg-zinc-900">Non-Aktif</option>
-                  </select>
+                    onChange={(val) => setProdActive(val === "true")}
+                  />
                 </div>
               </div>
 
