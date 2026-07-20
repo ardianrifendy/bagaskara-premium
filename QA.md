@@ -80,3 +80,12 @@ Laporan hasil pengujian fungsional dan keamanan sistem end-to-end untuk Bagaskar
   - **Tap Target**: Seluruh tombol interaktif (cek invoice, order, copy, filter) memiliki tinggi tap target minimal 44px.
   - **Warna Aksen**: Konsisten emerald (hijau) dan zinc. Warna ungu/violet dihindari sepenuhnya sesuai Design System.
 - **Status**: **LULUS**
+
+### 8. Transisi QRIS Statis-ke-Dinamis & Verifikasi Manual Admin
+- **Metode Pengujian**: Menguji pembuatan pesanan dengan dynamic QRIS (dihasilkan dari static QRIS di database settings), memverifikasi alur manual payment confirmation dari sisi admin panel, serta menjalankan unit/integration test local di `/api/dev-test`.
+- **Hasil Verifikasi**:
+  - **Dynamic QRIS Generator**: Konverter parse string static QRIS EMVCo, mengganti initiation method ke dynamic, menginjeksi tag 54 (amount), menghapus tag 63 lama, menyusun kembali tag-tag, menghitung ulang CRC16 CCITT, dan menyematkannya di akhir string secara akurat.
+  - **Tripay Bypass**: Fungsi order creation mem-bypass request API Tripay dan memproduksi QR Code dinamis berbasis payload hasil konversi QRIS statis lokal.
+  - **Manual Payment Confirmation**: Dashboard order admin dilengkapi tombol "Konfirmasi Bayar" untuk pesanan pending. Mengklik tombol ini memicu server action yang memverifikasi pembayaran secara manual dengan logic atomik database (`FOR UPDATE SKIP LOCKED`) untuk auto-stock delivery atau memindahkan status ke `PROCESSING` jika manual/stok kosong, dan memicu notifikasi WA.
+  - **Integration Test**: Endpoint `/api/dev-test` diperbarui untuk memverifikasi logic verifikasi manual admin & proteksi keamanan. Pengujian berhasil dengan status: **ALL TESTS PASSED**.
+- **Status**: **LULUS**

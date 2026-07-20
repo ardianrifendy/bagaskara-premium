@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import { saveSettings } from "@/app/actions/settings";
-import { Settings, Save, CheckCircle2, CircleAlert, Phone, HelpCircle } from "lucide-react";
+import { Settings, Save, CheckCircle2, CircleAlert, Phone, HelpCircle, QrCode } from "lucide-react";
 
 interface AdminSettingsManagerProps {
   defaultSettings: {
     csWhatsapp: string;
     warrantyText: string;
     socialProofEnabled: boolean;
+    staticQris: string;
   };
 }
 
@@ -16,6 +17,7 @@ export default function AdminSettingsManager({ defaultSettings }: AdminSettingsM
   const [csWhatsapp, setCsWhatsapp] = useState(defaultSettings.csWhatsapp);
   const [warrantyText, setWarrantyText] = useState(defaultSettings.warrantyText);
   const [socialProofEnabled, setSocialProofEnabled] = useState(defaultSettings.socialProofEnabled);
+  const [staticQris, setStaticQris] = useState(defaultSettings.staticQris);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export default function AdminSettingsManager({ defaultSettings }: AdminSettingsM
         csWhatsapp,
         warrantyText,
         socialProofEnabled,
+        staticQris,
       });
 
       if (res.success) {
@@ -76,6 +79,28 @@ export default function AdminSettingsManager({ defaultSettings }: AdminSettingsM
           </div>
           <p className="text-[10px] text-zinc-400 dark:text-zinc-500 pl-2 leading-relaxed">
             Link tombol bantuan CS WhatsApp di footer dan invoice akan otomatis mengarah ke nomor ini.
+          </p>
+        </div>
+
+        {/* QRIS Statis */}
+        <div className="space-y-1.5">
+          <label htmlFor="static-qris" className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+            String QRIS Statis Merchant (EMVCo)
+          </label>
+          <div className="relative">
+            <QrCode className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-zinc-400" />
+            <textarea
+              id="static-qris"
+              placeholder="Masukkan string payload QRIS Statis Anda (contoh: 000201010211...)"
+              value={staticQris}
+              onChange={(e) => setStaticQris(e.target.value)}
+              required
+              rows={3}
+              className="w-full text-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent pl-11 pr-4 py-2.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none leading-relaxed"
+            />
+          </div>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 pl-2 leading-relaxed">
+            String QRIS ini akan dikonversi secara dinamis sesuai nominal pesanan saat pembeli melakukan checkout.
           </p>
         </div>
 

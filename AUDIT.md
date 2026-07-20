@@ -260,4 +260,38 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**
 
+---
+
+## Audit Transisi Pembayaran QRIS Statis-ke-Dinamis & Verifikasi Manual (20 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Penerapan Dynamic QRIS dari Static QRIS (`src/lib/qris.ts`)**:
+   - Mengimplementasikan EMVCo parsing dan parser TLV (Tag-Length-Value) yang handal.
+   - Melakukan injeksi tag 54 (Amount/nominal tagihan) secara dinamis dan mengubah tag 01 menjadi 12 (Dynamic QRIS).
+   - Menghitung ulang checksum CRC16 CCITT dengan seed 0xFFFF dan polynomial 0x1021. Algoritma diverifikasi lulus pengujian test vector resmi `123456789` -> `29B1`.
+   - Mengintegrasikan konverter ini di `src/lib/payment/tripay.ts` untuk mem-bypass Tripay API secara transparan, mengambil string QRIS statis dari database settings, dan memproduksi URL QR Code dinamis via QRServer API.
+   - Status: **LULUS**
+
+2. **Verifikasi Pembayaran Manual Admin**:
+   - Membuat Server Action `confirmPaymentManual` di `src/app/actions/admin-order.ts` dengan proteksi autentikasi sesi admin.
+   - Implementasi logic verifikasi pembayaran manual meniru alur pemrosesan webhook Tripay secara aman (idempotency check, database transactions, penguncian stok atomik `FOR UPDATE SKIP LOCKED`, delivery snapshot, dan fire-and-forget notifikasi WhatsApp pembeli & admin).
+   - Menambahkan tombol "Konfirmasi Bayar" untuk pesanan `PENDING` di tabel transaksi admin (`src/components/AdminOrderManager.tsx`).
+   - Status: **LULUS**
+
+3. **Pengaturan QRIS Statis & WhatsApp Dinamis**:
+   - Menambahkan field `static_qris` di model settings dan seeding awal.
+   - Memperbarui menu pengaturan `/admin/settings` dengan Textarea untuk merubah QRIS statis.
+   - Mengintegrasikan WhatsApp CS dinamis di halaman invoice pembeli, menggantikan nomor hardcoded sebelumnya.
+   - Status: **LULUS**
+
+4. **Verifikasi Pengujian & Build**:
+   - Memperbarui `/api/dev-test` untuk mensimulasikan logic database verifikasi manual dan security check. Hasil test: **ALL TESTS PASSED**.
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
+
 

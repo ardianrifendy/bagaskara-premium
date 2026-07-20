@@ -38,9 +38,10 @@ interface InvoiceClientProps {
     warrantyUntil: string;
   } | null;
   warrantyDays: number;
+  csWhatsapp: string;
 }
 
-export default function InvoiceClient({ order, delivery, warrantyDays }: InvoiceClientProps) {
+export default function InvoiceClient({ order, delivery, warrantyDays, csWhatsapp }: InvoiceClientProps) {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -139,7 +140,7 @@ export default function InvoiceClient({ order, delivery, warrantyDays }: Invoice
   };
 
   // WhatsApp claim warranty template link
-  const waCSNumber = "628123456789"; // Will be fetched from Settings in Phase 2
+  const waCSNumber = csWhatsapp; // Fetched dynamically from database settings
   const claimMessage = `Halo Admin Bagaskara Premium, saya ingin klaim garansi untuk order dengan Invoice ID *${order.id}*.\n\n` +
     `*Produk:* ${order.productNameSnap} - ${order.variantNameSnap}\n` +
     `*Kendala:* [Tulis kendala Anda di sini]`;

@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { orders, deliveries, variants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { orders, deliveries, variants, products } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
@@ -158,5 +158,169 @@ export async function refundOrderManual(orderId: string) {
   } catch (error: any) {
     console.error("Refund Order Error:", error);
     return { success: false, error: error?.message || "Gagal merubah status pesanan ke REFUNDED." };
+  }
+}
+
+export async function confirmPaymentManual(orderId: string) {
+  const session = await getSession();
+  if (!session.isLoggedIn || !session.username) {
+    return { success: false, error: "Akses tidak sah." };
+  }
+
+  const adminName = session.username;
+
+  try {
+    // 1. Fetch order details
+    const orderResult = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (orderResult.length === 0) {
+      return { success: false, error: "Pesanan tidak ditemukan." };
+    }
+
+    const order = orderResult[0];
+
+    // Idempotency check: Only allow PENDING orders to be confirmed
+    if (order.status !== "PENDING") {
+      return { success: false, error: "Hanya pesanan berstatus PENDING yang dapat dikonfirmasi pembayarannya." };
+    }
+
+    // 2. Fetch associated variant and product
+    const variantResult = await db
+      .select({
+        variant: variants,
+        product: products,
+      })
+      .from(variants)
+      .innerJoin(products, eq(variants.productId, products.id))
+      .where(eq(variants.id, order.variantId))
+      .limit(1);
+
+    if (variantResult.length === 0) {
+      return { success: false, error: "Varian produk tidak ditemukan." };
+    }
+
+    const { variant, product } = variantResult[0];
+    let outcome: "DELIVERED" | "STOCK_EMPTY" | "PROCESSING" = "PROCESSING";
+    let allocatedStockPayload: any = null;
+
+    if (variant.deliveryMode === "AUTO_STOCK") {
+      // Atomic UPDATE ... RETURNING query with FOR UPDATE SKIP LOCKED
+      const updateResult = await db.execute(sql`
+        UPDATE stock_items
+        SET status = 'SOLD', sold_order_id = ${orderId}
+        WHERE id = (
+          SELECT id
+          FROM stock_items
+          WHERE variant_id = ${variant.id} AND status = 'AVAILABLE'
+          ORDER BY created_at
+          LIMIT 1
+          FOR UPDATE SKIP LOCKED
+        )
+        RETURNING id, payload_json;
+      `);
+
+      const rows = updateResult.rows;
+
+      if (rows.length > 0) {
+        const stockRow = rows[0] as { id: number; payload_json: any };
+        allocatedStockPayload = stockRow.payload_json;
+
+        // Insert snapshot into deliveries
+        const warrantyUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * variant.warrantyDays);
+        await db.insert(deliveries).values({
+          orderId: orderId,
+          payloadJson: allocatedStockPayload,
+          warrantyUntil: warrantyUntil,
+        });
+
+        // Update order status to DELIVERED
+        await db
+          .update(orders)
+          .set({
+            status: "DELIVERED",
+            paidAt: new Date(),
+            deliveredAt: new Date(),
+            statusChangedBy: `admin:${adminName}`,
+            statusChangedAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        outcome = "DELIVERED";
+      } else {
+        // Stock empty -> set status to PROCESSING
+        await db
+          .update(orders)
+          .set({
+            status: "PROCESSING",
+            paidAt: new Date(),
+            statusChangedBy: `admin:${adminName}`,
+            statusChangedAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+
+        outcome = "STOCK_EMPTY";
+      }
+    } else {
+      // Delivery mode MANUAL_INVITE -> set status to PROCESSING
+      await db
+        .update(orders)
+        .set({
+          status: "PROCESSING",
+          paidAt: new Date(),
+          statusChangedBy: `admin:${adminName}`,
+          statusChangedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+      outcome = "PROCESSING";
+    }
+
+    // Fire-and-forget WhatsApp notifications
+    if (outcome === "DELIVERED" && allocatedStockPayload) {
+      const payloadData = allocatedStockPayload as Record<string, any>;
+      const accountData = {
+        email: payloadData.email || "",
+        pass: payloadData.password || payloadData.pass || "",
+        profile: payloadData.profile || "-",
+        pin: payloadData.pin || "-",
+        note: payloadData.note || "",
+      };
+
+      const msg = waTemplates.accountDelivered(
+        order.id,
+        order.productNameSnap,
+        order.variantNameSnap,
+        accountData,
+        variant.warrantyDays
+      );
+      sendWhatsAppMessage(order.waNumber, msg);
+    } else if (outcome === "STOCK_EMPTY") {
+      // Notify user order is processing
+      const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+      sendWhatsAppMessage(order.waNumber, userMsg);
+
+      // Notify admin about stock alert
+      const adminPhone = "6289513679939"; // default CS WA
+      const adminMsg = waTemplates.stockEmptyAlert(order.id, order.productNameSnap, order.variantNameSnap);
+      sendWhatsAppMessage(adminPhone, adminMsg);
+    } else if (outcome === "PROCESSING") {
+      // Notify user order is processing
+      const userMsg = waTemplates.orderProcessing(order.id, order.productNameSnap, order.variantNameSnap);
+      sendWhatsAppMessage(order.waNumber, userMsg);
+    }
+
+    // Revalidate paths
+    revalidatePath("/admin/order");
+    revalidatePath("/admin");
+    revalidatePath(`/invoice/${orderId}`);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Confirm Payment Error:", error);
+    return { success: false, error: error?.message || "Gagal mengonfirmasi pembayaran." };
   }
 }

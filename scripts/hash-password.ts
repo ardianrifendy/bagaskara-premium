@@ -42,14 +42,15 @@ async function main() {
 
   const salt = bcrypt.genSaltSync(12);
   const hash = bcrypt.hashSync(password.trim(), salt);
+  const escapedHash = hash.replace(/\$/g, "\\$");
 
   console.log("");
-  console.log("=== HASH BCRYPT ===");
+  console.log("=== HASH BCRYPT (RAW) ===");
   console.log(hash);
-  console.log("===================");
+  console.log("=========================");
   console.log("");
-  console.log("Salin hash di atas ke variabel ADMIN_PASSWORD_HASH di berkas .env Anda:");
-  console.log(`ADMIN_PASSWORD_HASH="${hash}"`);
+  console.log("Salin baris di bawah ini dan tempelkan ke berkas .env Anda (sudah di-escape agar kompatibel dengan Next.js):");
+  console.log(`ADMIN_PASSWORD_HASH="${escapedHash}"`);
   console.log("");
 
   process.exit(0);

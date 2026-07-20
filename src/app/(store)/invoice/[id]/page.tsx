@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { orders, deliveries, variants } from "@/db/schema";
+import { orders, deliveries, variants, settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import InvoiceClient from "@/components/InvoiceClient";
@@ -43,6 +43,12 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
 
   const warrantyDays = variantResult[0]?.warrantyDays || 30; // fallback default 30 days
 
+  // 2.5. Fetch cs_whatsapp from settings
+  const settingsResult = await db
+    .select()
+    .from(settings);
+  const csWhatsapp = settingsResult.find((s) => s.key === "cs_whatsapp")?.value || "6289513679939";
+
   // 3. Fetch delivery snapshot if status is DELIVERED
   let deliveryResult = null;
   if (order.status === "DELIVERED") {
@@ -77,6 +83,7 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
       order={serializedOrder}
       delivery={deliveryResult}
       warrantyDays={warrantyDays}
+      csWhatsapp={csWhatsapp}
     />
   );
 }

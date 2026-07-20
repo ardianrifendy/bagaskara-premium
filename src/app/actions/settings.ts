@@ -11,6 +11,7 @@ const settingsSchema = z.object({
   csWhatsapp: z.string().min(1, "WhatsApp CS wajib diisi"),
   warrantyText: z.string().min(1, "Teks garansi wajib diisi"),
   socialProofEnabled: z.boolean(),
+  staticQris: z.string().min(1, "String QRIS Statis wajib diisi"),
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;
@@ -26,7 +27,7 @@ export async function saveSettings(input: SettingsInput) {
     return { success: false, error: validation.error.errors[0]?.message || "Validasi gagal" };
   }
 
-  const { csWhatsapp, warrantyText, socialProofEnabled } = validation.data;
+  const { csWhatsapp, warrantyText, socialProofEnabled, staticQris } = validation.data;
 
   try {
     // Update individual configuration keys
@@ -44,6 +45,11 @@ export async function saveSettings(input: SettingsInput) {
       .update(settings)
       .set({ value: socialProofEnabled ? "true" : "false" })
       .where(eq(settings.key, "social_proof_enabled"));
+
+    await db
+      .update(settings)
+      .set({ value: staticQris.trim() })
+      .where(eq(settings.key, "static_qris"));
 
     // Revalidate paths to refresh page state on next visit
     revalidatePath("/admin/settings");

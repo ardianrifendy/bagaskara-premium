@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { fulfillOrderManual, refundOrderManual } from "@/app/actions/admin-order";
+import { fulfillOrderManual, refundOrderManual, confirmPaymentManual } from "@/app/actions/admin-order";
 import { formatRupiah, formatDateTime, formatDate } from "@/lib/format";
 import {
   Search,
@@ -144,6 +144,25 @@ export default function AdminOrderManager({
     }
   };
 
+  const handleConfirmPayment = async (orderId: string) => {
+    if (!confirm("Apakah Anda yakin sudah menerima pembayaran penuh untuk order ini?")) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await confirmPaymentManual(orderId);
+      if (res.success) {
+        alert("Pembayaran berhasil dikonfirmasi.");
+      } else {
+        alert(res.error || "Gagal mengonfirmasi pembayaran.");
+      }
+    } catch (err: any) {
+      alert(err?.message || "Terjadi kesalahan koneksi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Helper styles for statuses
   const statusBadges: Record<string, string> = {
     PENDING: "bg-amber-50 text-amber-600 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400",
@@ -253,6 +272,15 @@ export default function AdminOrderManager({
                       {formatDateTime(o.createdAt)}
                     </td>
                     <td className="px-4 py-3.5 text-right space-x-2 font-sans">
+                      {o.status === "PENDING" && (
+                        <button
+                          onClick={() => handleConfirmPayment(o.id)}
+                          disabled={loading}
+                          className="inline-flex h-8 items-center justify-center gap-1 rounded-full bg-amber-600 hover:bg-amber-500 px-3 text-[11px] font-bold text-white transition-colors disabled:opacity-50"
+                        >
+                          Konfirmasi Bayar
+                        </button>
+                      )}
                       {o.status === "PROCESSING" && (
                         <button
                           onClick={() => handleFulfillOpen(o)}
