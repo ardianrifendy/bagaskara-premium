@@ -214,3 +214,25 @@ Dokumen ini mencatat riwayat audit untuk setiap fase pengembangan/agent. Fase be
    - `npm run lint` bersih tanpa error.
    - `npm run build` sukses menghasilkan optimized production build Next.js.
    - Status: **LULUS**
+
+---
+
+## Audit Perbaikan Login Admin (20 Juli 2026)
+
+- **Auditor**: Claude Code (Self-Audit)
+- **Status Akhir**: **LULUS**
+
+### Temuan & Evaluasi:
+1. **Perbaikan Loop Redirection Halaman Login**:
+   - Memindahkan halaman panel admin terproteksi ke Route Group `(dashboard)` bersarang di bawah `src/app/admin/`.
+   - Layout utama yang mengandung proteksi pengecekan sesi dipindahkan ke `src/app/admin/(dashboard)/layout.tsx`.
+   - Membuat layout root admin baru di `src/app/admin/layout.tsx` yang hanya me-render `children` tanpa proteksi, sehingga halaman `/admin/login` tidak terpengaruh oleh pengecekan sesi yang memicu redirect loop.
+   - Status: **LULUS**
+
+2. **Verifikasi Build & Kompilasi**:
+   - Menghapus folder cache `.next` untuk memastikan pembuatan type definition Next.js yang bersih.
+   - `tsc --noEmit` bersih tanpa error.
+   - `npm run lint` bersih tanpa error.
+   - `npm run build` sukses menghasilkan optimized production build Next.js.
+   - Status: **LULUS**
+
